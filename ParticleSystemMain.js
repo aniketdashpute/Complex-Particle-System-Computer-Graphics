@@ -80,12 +80,12 @@ function initVertexBuffers(gl)
 
     // specify the layout of the vertex buffer
     gl.vertexAttribPointer(a_Position, 
-                            3,  // # of values in this attrib (1,2,3,4) 
-                            gl.FLOAT, // data type (usually gl.FLOAT)
-                            false,  // use integer normalizing? (usually false)
-                            0,  // Stride: #bytes from 1st stored value to next 
-                            0); // Offiset; #bytes from start of buffer to the
-                                // 1st stored attrib value we will actually use.                                      
+        3,  // # of values in this attrib (1,2,3,4) 
+        gl.FLOAT, // data type (usually gl.FLOAT)
+        false,  // use integer normalizing? (usually false)
+        0,  // Stride: #bytes from 1st stored value to next 
+        0); // Offiset; #bytes from start of buffer to the
+        // 1st stored attrib value we will actually use.                                      
                                 
     // Enable the assignment to a_Position variable
     gl.enableVertexAttribArray(a_Position);
