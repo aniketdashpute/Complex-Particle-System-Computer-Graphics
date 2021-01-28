@@ -3,14 +3,15 @@
 
 function main()
 {
-    const canvas = document.querySelector("#glCanvas");
-
+    // Get the canvas element to draw using WebGL
+    const canvas = document.getElementById("glCanvas");
     // Initialize GL context
-    const gl = canvas.getContext("webgl");
+    const gl = canvas.getContext("webgl", { preserveDrawingBuffer: true });
 
     // Only continue if WebGL is available and working
     if (gl == null)
     {
+        console.log("Failed to get rendering context for WebGL");
         alert("Unable to initialize WebGL. Your browser or machine may not support it.");
         return;
     }
