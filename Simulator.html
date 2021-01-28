@@ -8,6 +8,47 @@ run ParticleSystemMain.js to clear screen-->
 
     <body>
         <canvas id="glCanvas" width="480" height="480"></canvas>
+
+        <!-- vertex shader code -->
+        <script  id="vertex-shader" type="shader/vertexshader">
+            // Basic vertex shader that just passes on the input position to the output
+
+            // an attribute will receive data from a buffer
+            attribute vec4 a_position;
+             
+            // all shaders have a main function
+            void main()
+            {
+                // gl_Position is a special variable a vertex shader
+                // is responsible for setting
+                gl_Position = a_position;
+            }
+                 
+        </script>
+
+        <!-- fragment shader code -->
+        <script  id="fragment-shader" type="shader/fragmentshader">
+
+            // Basic fragment shader that gives some color to the pixel
+
+            // fragment shaders don't have a default precision so we need
+            // to pick one. mediump is a good default
+            // precision mediump float;
+
+            void main()
+            {
+                // gl_FragColor is a special variable that a fragment shader 
+                // is responsible for setting
+                gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0); // return red
+            }
+        </script>
+
+        <!-- required libraries for the project -->
+        <script src="lib/webgl-utils.js"></script>
+        <script src="lib/webgl-debug.js"></script>
+        <script src="lib/cuon-utils.js"></script>
+        <script src="lib/cuon-matrix-quat03.js"></script>    
+
         <script src = "ParticleSystemMain.js"></script>
     </body>
 </html>
