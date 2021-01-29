@@ -1,24 +1,18 @@
-// Basic init code
-// Render blue screen using canvas element
+// Render a cube on a black screen
 
 function main()
 {
     // Get the canvas element to draw using WebGL
     const canvas = document.getElementById("glCanvas");
+
     // Initialize GL context
     const gl = canvas.getContext("webgl", { preserveDrawingBuffer: true });
-
     // Only continue if WebGL is available and working
-    if (null == gl)
+    if (!gl)
     {
         console.log("main() Failed to get rendering context for WebGL");
         return;
     }
-
-    // Set clear color to black, fully opaque
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    // Clear the color buffer with specified clear color
-    gl.clear(gl.COLOR_BUFFER_BIT);
 
     // get the vertex and fragment shader strings
     var vsSource = document.getElementById("vertex-shader").textContent;
@@ -49,7 +43,7 @@ function getAtrribsAndUniforms(gl)
         attribLocations:
         {
           vertexPosition: gl.getAttribLocation(gl.program, 'a_Position'),
-        //   vertexColor: gl.getAttribLocation(gl.program, 'aVertexColor'),
+          vertexColor: gl.getAttribLocation(gl.program, 'a_Color'),
         },
         uniformLocations:
         {
@@ -58,32 +52,33 @@ function getAtrribsAndUniforms(gl)
         }
     };
 
-    if (programInfo.attribLocations.vertexPosition < 0)
-    {
-        console.log('Failed to get the storage location of a_Position');
-        return -1;
-    }
-
     return programInfo;
 }
 
 function setVertexInputLayout(gl, buffers, programInfo)
 {
+    // Vertices ->
+
     // Bind the buffer object to target (gl.ARRAY_BUFFER = vertexBuffer)
     gl.bindBuffer(gl.ARRAY_BUFFER, buffers.vertex);
-
-    // # of values in this attrib (1,2,3,4) 
-    const nAttributes = 3;
+ 
+    if (programInfo.attribLocations.vertexPosition < 0)
+    {
+        console.log('Failed to get the storage location of a_Position');
+        return -1;
+    }    
+    // # of values in this attrib (x,y,z) => 3
+    var nAttributes = 3;
     // data type (usually gl.FLOAT)
-    const dataType = gl.FLOAT;
+    var dataType = gl.FLOAT;
     // use integer normalizing? (usually false)
-    const bNormalize = false;
+    var bNormalize = false;
     // Stride: #bytes from 1st stored value to next 
-    const stride = 0;
+    var stride = 0;
     // Offiset; #bytes from start of buffer to the 1st attrib value to be used
-    const offset = 0;
-    // specify the layout of the vertex buffer
+    var offset = 0;
 
+    // specify the layout of the vertex buffer
     gl.vertexAttribPointer(
         programInfo.attribLocations.vertexPosition, 
         nAttributes,
@@ -95,40 +90,127 @@ function setVertexInputLayout(gl, buffers, programInfo)
     // Enable the assignment to a_Position variable
     gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
 
+    // Colors ->
+
+    // Bind the buffer object to target (gl.ARRAY_BUFFER = colorBuffer)    
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+    
+    if (programInfo.attribLocations.vertexColor < 0)
+    {
+        console.log('Failed to get the storage location of a_Color');
+        return -1;
+    }    
+    // # of values in this attrib (r,g,b,w) => 4
+    nAttributes = 4;
+    dataType = gl.FLOAT;
+    bNormalize = false;
+    stride = 0;
+    offset = 0;
+
+    // specify the layout of the vertex buffer       
+    gl.vertexAttribPointer(
+        programInfo.attribLocations.vertexColor,
+        nAttributes,
+        dataType,
+        bNormalize,
+        stride,
+        offset);
+
+    // Enable the assignment to a_Color variable
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+
+    // Indices ->
+
     // Tell WebGL which indices to use to index the vertices
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.index);
 }
 
-function initBuffers(gl)
+function makeCube()
 {
     // array of vertex positions collection of (x,y,z)'s
     const f = 0.5;
     var vertices = new Float32Array ([
-        -f, -f,  f, // 0
-         f, -f,  f, // 1
-         f,  f,  f, // 2
-        -f,  f,  f, // 3
-      
-        -f, -f, -f, // 4
-        -f,  f, -f, // 5
-         f,  f, -f, // 6
-         f, -f, -f  // 7
+        // Front face
+        -f, -f,  f,
+        f, -f,  f,
+        f,  f,  f,
+        -f,  f,  f,
+
+        // Back face
+        -f, -f, -f,
+        -f,  f, -f,
+        f,  f, -f,
+        f, -f, -f,
+
+        // Top face
+        -f,  f, -f,
+        -f,  f,  f,
+        f,  f,  f,
+        f,  f, -f,
+
+        // Bottom face
+        -f, -f, -f,
+        f, -f, -f,
+        f, -f,  f,
+        -f, -f,  f,
+
+        // Right face
+        f, -f, -f,
+        f,  f, -f,
+        f,  f,  f,
+        f, -f,  f,
+
+        // Left face
+        -f, -f, -f,
+        -f, -f,  f,
+        -f,  f,  f,
+        -f,  f, -f,
     ]);
 
     var indices = new Uint16Array ([
-        0,  1,  2,      0,  2,  3,  // front
-        4,  5,  6,      4,  6,  7,  // back
-        5,  3,  2,      5,  2,  6,  // top
-        4,  7,  1,      4,  1,  0,  // bottom
-        7,  6,  2,      7,  2,  1,  // right
-        4,  0,  3,      4,  3,  5,  // left
+        0,  1,  2,      0,  2,  3,    // front
+        4,  5,  6,      4,  6,  7,    // back
+        8,  9,  10,     8,  10, 11,   // top
+        12, 13, 14,     12, 14, 15,   // bottom
+        16, 17, 18,     16, 18, 19,   // right
+        20, 21, 22,     20, 22, 23,   // left
     ]);
 
+    var faceColors = [
+        [1.0,  1.0,  1.0,  1.0],    // Front face: white
+        [1.0,  0.0,  0.0,  1.0],    // Back face: red
+        [0.0,  1.0,  0.0,  1.0],    // Top face: green
+        [0.0,  0.0,  1.0,  1.0],    // Bottom face: blue
+        [1.0,  1.0,  0.0,  1.0],    // Right face: yellow
+        [1.0,  0.0,  1.0,  1.0],    // Left face: purple
+    ];
+
+    // Convert the array of colors into a table for all the vertices.
+    var colorArray = [];
+    for (var j = 0; j < faceColors.length; ++j)
+    {
+        const c = faceColors[j];
+
+        // Repeat each color four times for the four vertices of the face
+        colorArray = colorArray.concat(c, c, c, c);
+    }
+    colors = new Float32Array (colorArray);
+    
     // # vertices to be draw in total (count of indices)
     var nVertices = 36;
 
-    // # bytes per floating-point value;
-    FSIZE = vertices.BYTES_PER_ELEMENT;
+    return {
+        vertices: vertices,
+        colors: colors,
+        indices: indices,
+        numVertices: nVertices,
+    };
+}
+
+function initBuffers(gl)
+{
+    // get the data of vertices, indices and color for a cube
+    cubeParams = makeCube();
 
     // Create a buffer object for vertices
     var vertexBuffer = gl.createBuffer();
@@ -140,7 +222,7 @@ function initBuffers(gl)
     // Bind the buffer object to target (gl.ARRAY_BUFFER = vertexBuffer)
     gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
     // Write data into the buffer object (vertexBuffer.data = vertices)
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, cubeParams.vertices, gl.STATIC_DRAW);
 
     // Create Buffer, Bind to Index Buffer, Write Data
     var indexBuffer = gl.createBuffer();
@@ -150,13 +232,23 @@ function initBuffers(gl)
         return -1;
     }
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indices, gl.STATIC_DRAW);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, cubeParams.indices, gl.STATIC_DRAW);
 
+    // Create Buffer, Bind to Color Buffer, Write Data
+    var colorBuffer = gl.createBuffer();
+    if (!colorBuffer)
+    {
+        console.log('Failed to create the color buffer object');
+        return -1;
+    }    
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, cubeParams.colors, gl.STATIC_DRAW);
 
     return {
         vertex: vertexBuffer,
-        vertexCount: nVertices,
-        indices: indexBuffer,
+        vertexCount: cubeParams.numVertices,
+        index: indexBuffer,
+        color: colorBuffer,
     };
 }
 
@@ -165,8 +257,12 @@ function drawScene(gl, programInfo, buffers)
     // specify the colour that we want for clearing
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-    // Clear <canvas>
-    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.clearDepth(1.0);                 // Clear everything
+    gl.enable(gl.DEPTH_TEST);           // Enable depth testing
+    gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
+  
+    // Clear the canvas before we start drawing on it.
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
   
     // specify the layout of the input buffer provided to the VS
     setVertexInputLayout(gl, buffers, programInfo);
