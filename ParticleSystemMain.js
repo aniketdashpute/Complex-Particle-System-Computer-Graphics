@@ -182,9 +182,9 @@ function setProjectionMatrix(gl, programInfo)
     // and inside screen is +y-axis
 
     // The position of the eye point
-    var eyeX = 0.0, eyeY = -10.0, eyeZ = 0.0;
+    var eyeX = 0.0, eyeY = -10.0, eyeZ = 6.0;
     // The position of the reference point
-    var centerX = 0.0, centerY = 0.0, centerZ = 0.0;
+    var centerX = 0.0, centerY = 0.0, centerZ = 3.0;
     // 'up' vector
     var upX = 0.0, upY = 0.0, upZ = 1.0;
     projectionMatrix.lookAt(
