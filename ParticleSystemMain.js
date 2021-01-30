@@ -12,17 +12,8 @@
 
 function main()
 {
-    // Get the canvas element to draw using WebGL
-    const canvas = document.getElementById("glCanvas");
-
-    // Initialize GL context
-    const gl = canvas.getContext("webgl", { preserveDrawingBuffer: true });
-    // Only continue if WebGL is available and working
-    if (!gl)
-    {
-        console.log("main() Failed to get rendering context for WebGL");
-        return;
-    }
+    // Initialize and get GL context
+    const gl = getGlContext();
 
     // initialize the shaders and create program
     initializeShaders(gl);
@@ -36,6 +27,23 @@ function main()
 
     // Draw the cube
     drawScene(gl, programInfo, buffers);
+}
+
+function getGlContext()
+{
+    // Get the canvas element to draw using WebGL
+    const canvas = document.getElementById("glCanvas");
+
+    // Initialize GL context
+    const gl = canvas.getContext("webgl", { preserveDrawingBuffer: true });
+    // Only continue if WebGL is available and working
+    if (!gl)
+    {
+        console.log("main() Failed to get rendering context for WebGL");
+        return;
+    }
+
+    return gl;
 }
 
 function initializeShaders(gl)
