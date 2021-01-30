@@ -9,6 +9,7 @@
 */
 
 // Render a cube on a black screen
+// Also Render a ground beneath it
 
 function main()
 {
@@ -22,11 +23,14 @@ function main()
     // and store them in programInfo to be used directly later
     const programInfo = getAtrribsAndUniforms(gl);
 
-    // Initialize the buffers that we will need
-    var buffers = initBuffers(gl);
+    // Initialize the buffers that we will need for drawing cube
+    var buffersCube = initBuffersCube(gl);
 
-    // Draw the cube
-    drawScene(gl, programInfo, buffers);
+    // Initialize the buffers that we will need for drawing ground
+    var buffersGround = initBuffersGround(gl);
+
+    // Draw the cube and ground
+    drawScene(gl, programInfo, buffersCube, buffersGround);
 }
 
 function getGlContext()
@@ -57,6 +61,97 @@ function initializeShaders(gl)
 		console.log('main() Failed to intialize shaders.');
 		return;
     }
+}
+
+function getAtrribsAndUniforms(gl)
+{
+    const programInfo =
+    {
+        program: gl.program,
+        attribLocations:
+        {
+          vertexPosition: gl.getAttribLocation(gl.program, 'a_Position'),
+          vertexColor: gl.getAttribLocation(gl.program, 'a_Color'),
+        },
+        uniformLocations:
+        {
+            projectionMatrix: gl.getUniformLocation(gl.program, 'u_ProjectionMatrix'),
+            modelViewMatrix: gl.getUniformLocation(gl.program, 'u_ModelViewMatrix'),
+        }
+    };
+
+    return programInfo;
+}
+
+function setVertexInputLayout(gl, buffers, programInfo)
+{
+    // Vertices ->
+
+    // Bind the buffer object to target (gl.ARRAY_BUFFER = vertexBuffer)
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.vertex);
+ 
+    if (programInfo.attribLocations.vertexPosition < 0)
+    {
+        console.log('Failed to get the storage location of a_Position');
+        return -1;
+    }    
+    // # of values in this attrib, ex: (x,y,z) => 3
+    var nAttributes = buffers.numVertexAttributes;
+    // data type (usually gl.FLOAT)
+    var dataType = gl.FLOAT;
+    // use integer normalizing? (usually false)
+    var bNormalize = false;
+    // Stride: #bytes from 1st stored value to next 
+    var stride = 0;
+    // Offiset; #bytes from start of buffer to the 1st attrib value to be used
+    var offset = 0;
+
+    // specify the layout of the vertex buffer
+    gl.vertexAttribPointer(
+        programInfo.attribLocations.vertexPosition, 
+        nAttributes,
+        dataType, 
+        bNormalize,
+        stride,
+        offset);                                       
+                                
+    // Enable the assignment to a_Position variable
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+
+    // Colors ->
+
+    // Bind the buffer object to target (gl.ARRAY_BUFFER = colorBuffer)    
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+    
+    if (programInfo.attribLocations.vertexColor < 0)
+    {
+        console.log('Failed to get the storage location of a_Color');
+        return -1;
+    }    
+    // # of values in this attrib, ex: (r,g,b,w) => 4
+    nAttributes = buffers.numColorAttributes;
+    dataType = gl.FLOAT;
+    bNormalize = false;
+    stride = 0;
+    offset = 0;
+
+    // specify the layout of the vertex buffer       
+    gl.vertexAttribPointer(
+        programInfo.attribLocations.vertexColor,
+        nAttributes,
+        dataType,
+        bNormalize,
+        stride,
+        offset);
+
+    // Enable the assignment to a_Color variable
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+
+    // Indices ->
+
+    // Tell WebGL which indices to use to index the vertices
+    // will be null if no index buffer exists
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.index);
 }
 
 function setProjectionMatrix(gl, programInfo)
@@ -128,95 +223,131 @@ function setModelViewMatrixCube(gl, programInfo, currentAngle)
         modelViewMatrix.elements);
 }
 
-
-function getAtrribsAndUniforms(gl)
+function setModelViewMatrixGround(gl, programInfo, currentAngle)
 {
-    const programInfo =
-    {
-        program: gl.program,
-        attribLocations:
-        {
-          vertexPosition: gl.getAttribLocation(gl.program, 'a_Position'),
-          vertexColor: gl.getAttribLocation(gl.program, 'a_Color'),
-        },
-        uniformLocations:
-        {
-            projectionMatrix: gl.getUniformLocation(gl.program, 'u_ProjectionMatrix'),
-            modelViewMatrix: gl.getUniformLocation(gl.program, 'u_ModelViewMatrix'),
-        }
-    };
+    var modelViewMatrix = new Matrix4();
+    
+    modelViewMatrix.setIdentity();
 
-    return programInfo;
+    // Pass our current matrix to the vertex shaders:
+	gl.uniformMatrix4fv(
+        programInfo.uniformLocations.modelViewMatrix,
+        false,
+        modelViewMatrix.elements);    
 }
 
-function setVertexInputLayout(gl, buffers, programInfo)
+function makeGround()
 {
-    // Vertices ->
-
-    // Bind the buffer object to target (gl.ARRAY_BUFFER = vertexBuffer)
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.vertex);
- 
-    if (programInfo.attribLocations.vertexPosition < 0)
-    {
-        console.log('Failed to get the storage location of a_Position');
-        return -1;
-    }    
-    // # of values in this attrib (x,y,z) => 3
-    var nAttributes = 3;
-    // data type (usually gl.FLOAT)
-    var dataType = gl.FLOAT;
-    // use integer normalizing? (usually false)
-    var bNormalize = false;
-    // Stride: #bytes from 1st stored value to next 
-    var stride = 0;
-    // Offiset; #bytes from start of buffer to the 1st attrib value to be used
-    var offset = 0;
-
-    // specify the layout of the vertex buffer
-    gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexPosition, 
-        nAttributes,
-        dataType, 
-        bNormalize,
-        stride,
-        offset);                                       
-                                
-    // Enable the assignment to a_Position variable
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-
-    // Colors ->
-
-    // Bind the buffer object to target (gl.ARRAY_BUFFER = colorBuffer)    
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+    // make a ground grid in x-y plane
     
-    if (programInfo.attribLocations.vertexColor < 0)
+    // create array of vertex positions
+    // GL_LINES primitive would be used to draw this
+
+    // (x, y, z, w) structure of vertices
+    var numAttribs = 4;
+
+    // # lines to draw in x,y to make the grid
+    var nXLines = 100;
+    var nYLines = 100;
+
+    // grid size; extends to cover +/-xymax in x and y
+    var xymax = 50.0;
+
+    // total # vertices
+    var nVertices = 2 * (nXLines + nYLines);
+
+    // half-spacing between lines in x,y
+    // because v * xgap => v is (line #)/2
+	var xgap = xymax / (nXLines - 1);
+    var ygap = xymax / (nYLines - 1);
+        
+    // create an array of vertices, 2 vertices for each line
+    var verticesGround = new Float32Array(numAttribs * 2 * (nXLines + nYLines));
+
+    // vertices for Y-lines (parallel to y-axis)
+    for (v = 0, j = 0; v < 2 * nYLines; v++, j += numAttribs)
     {
-        console.log('Failed to get the storage location of a_Color');
-        return -1;
-    }    
-    // # of values in this attrib (r,g,b,w) => 4
-    nAttributes = 4;
-    dataType = gl.FLOAT;
-    bNormalize = false;
-    stride = 0;
-    offset = 0;
+        // put even-numbered vertices at (xnow, -xymax, 0)
+        if (v % 2 == 0)
+        {
+            // x, y, z, w
+			verticesGround[j] = -xymax + (v) * ygap;
+			verticesGround[j + 1] = -xymax;
+			verticesGround[j + 2] = 0.0;
+			verticesGround[j + 3] = 1.0;
+        }
+        // put odd-numbered vertices at (xnow, +xymax, 0).
+        else
+        {
+            // x, y, z, w
+			verticesGround[j] = -xymax + (v - 1) * ygap;
+			verticesGround[j + 1] = xymax;
+			verticesGround[j + 2] = 0.0;
+			verticesGround[j + 3] = 1.0;
+		}
+    }
+    
+    // vertices for X-lines (parallel to x-axis)
+    for (v = 0; v < 2 * nXLines; v++, j += numAttribs)
+    {
+        // put even-numbered vertices at (-xymax, ynow, 0)
+        if (v % 2 == 0)
+        {
+            // x, y, z, w
+			verticesGround[j] = -xymax;
+			verticesGround[j + 1] = -xymax + (v) * xgap;
+			verticesGround[j + 2] = 0.0;
+			verticesGround[j + 3] = 1.0;
+        }
+        // put odd-numbered vertices at (xnow, +xymax, 0).
+        else
+        {
+            // x, y, z, w
+			verticesGround[j] = xymax;
+			verticesGround[j + 1] = -xymax + (v - 1) * xgap;
+			verticesGround[j + 2] = 0.0;
+			verticesGround[j + 3] = 1.0;
+		}
+    }
 
-    // specify the layout of the vertex buffer       
-    gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexColor,
-        nAttributes,
-        dataType,
-        bNormalize,
-        stride,
-        offset);
 
-    // Enable the assignment to a_Color variable
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+    // create and fill color array for the x-y lines
+    
+    // green color for Y-lines
+    var cColor1 = [0.0, 1.0, 0.0, 1.0];
 
-    // Indices ->
+    // yellow color for X-lines
+    var cColor2 = [1.0, 1.0, 0.0, 1.0];
 
-    // Tell WebGL which indices to use to index the vertices
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.index);
+    // (r,g,b,a)
+    numAttribs = 4;
+    var colorsGround = new Float32Array(numAttribs * 2 * (nXLines + nYLines));
+
+    // colors for Y-lines (parallel to y-axis)
+    for (v = 0, j = 0; v < 2 * nYLines; v++, j += numAttribs)
+    {
+        colorsGround[j] = cColor1[0];
+        colorsGround[j + 1] = cColor1[1];
+        colorsGround[j + 2] = cColor1[2];
+        colorsGround[j + 3] = cColor1[3];
+    }
+
+    // colors for X-lines (parallel to x-axis)
+    for (v = 0; v < 2 * nXLines; v++, j += numAttribs)
+    {
+        colorsGround[j] = cColor2[0];
+        colorsGround[j + 1] = cColor2[1];
+        colorsGround[j + 2] = cColor2[2];
+        colorsGround[j + 3] = cColor2[3];
+    }
+
+
+    return {
+        vertices: verticesGround,
+        colors: colorsGround,
+        numVertices: nVertices,
+    }
+
 }
 
 function makeCube()
@@ -301,11 +432,13 @@ function makeCube()
     };
 }
 
-function initBuffers(gl)
+function initBuffersCube(gl)
 {
     // get the data of vertices, indices and color for a cube
     cubeParams = makeCube();
 
+    // (x, y, z)
+    nVertexAttributes = 3;
     // Create a buffer object for vertices
     var vertexBuffer = gl.createBuffer();
     if (!vertexBuffer)
@@ -328,6 +461,8 @@ function initBuffers(gl)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, cubeParams.indices, gl.STATIC_DRAW);
 
+    // (r, g, b, a)
+    nColorAttributes = 4;
     // Create Buffer, Bind to Color Buffer, Write Data
     var colorBuffer = gl.createBuffer();
     if (!colorBuffer)
@@ -341,23 +476,55 @@ function initBuffers(gl)
     return {
         vertex: vertexBuffer,
         vertexCount: cubeParams.numVertices,
+        numVertexAttributes: nVertexAttributes,
         index: indexBuffer,
         color: colorBuffer,
+        numColorAttributes: nColorAttributes,
     };
 }
 
-function drawScene(gl, programInfo, buffers)
+function initBuffersGround(gl)
 {
-    // specify the colour that we want for clearing
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    // get the data of vertices, indices and color for a cube
+    groundParams = makeGround();
 
-    gl.clearDepth(1.0);                 // Clear everything
-    gl.enable(gl.DEPTH_TEST);           // Enable depth testing
-    gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
-  
-    // Clear the canvas before we start drawing on it.
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-  
+    // (x, y, z, w)
+    nVertexAttributes = 4;
+    // Create a buffer object for vertices
+    var vertexBuffer = gl.createBuffer();
+    if (!vertexBuffer)
+    {
+        console.log('Failed to create the vertex buffer object');
+        return -1;
+    }
+    // Bind the buffer object to target (gl.ARRAY_BUFFER = vertexBuffer)
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    // Write data into the buffer object (vertexBuffer.data = vertices)
+    gl.bufferData(gl.ARRAY_BUFFER, groundParams.vertices, gl.STATIC_DRAW);
+
+    // (r, g, b, a)
+    nColorAttributes = 4;
+    // Create Buffer, Bind to Color Buffer, Write Data
+    var colorBuffer = gl.createBuffer();
+    if (!colorBuffer)
+    {
+        console.log('Failed to create the color buffer object');
+        return -1;
+    }    
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, groundParams.colors, gl.STATIC_DRAW);
+
+    return {
+        vertex: vertexBuffer,
+        vertexCount: groundParams.numVertices,
+        numVertexAttributes: nVertexAttributes,
+        color: colorBuffer,
+        numColorAttributes: nColorAttributes,
+    };
+}
+
+function drawCube(gl, buffers, programInfo)
+{
     // specify the layout of the input buffer provided to the VS
     setVertexInputLayout(gl, buffers, programInfo);
 
@@ -373,6 +540,46 @@ function drawScene(gl, programInfo, buffers)
     const type = gl.UNSIGNED_SHORT;
     const offset = 0;
     gl.drawElements(gl.TRIANGLES, buffers.vertexCount, type, offset);
+}
+
+function drawGround(gl, buffers, programInfo)
+{
+    // specify the layout of the input buffer provided to the VS
+    setVertexInputLayout(gl, buffers, programInfo);
+
+    // specify the perspective projection required for viewing
+    setProjectionMatrix(gl, programInfo);
+
+    // specify the modelView matrix for transforming our ground
+    // temp:
+    var currentAngle = 0;
+    setModelViewMatrixGround(gl, programInfo, currentAngle);
+    
+    // start drawing from this index in vertex array
+    var nFirst = 0;
+
+    // Draw just the ground-plane's vertices
+	gl.drawArrays(gl.LINES, nFirst, buffers.vertexCount);
+}
+
+function drawScene(gl, programInfo, buffersCube, buffersGround)
+{
+    // specify the colour that we want for clearing
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+    gl.clearDepth(1.0);                 // Clear everything
+    gl.enable(gl.DEPTH_TEST);           // Enable depth testing
+    gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
+  
+    // Clear the canvas before we start drawing on it.
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    // Draw cube first
+    drawCube(gl, buffersCube, programInfo);
+
+    // Without clearing screen, draw ground now
+    drawGround(gl, buffersGround, programInfo);
+
 }
 
 window.onload = main();
