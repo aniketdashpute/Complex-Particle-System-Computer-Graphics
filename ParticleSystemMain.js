@@ -1,3 +1,13 @@
+/*
+* File: ParticleSystemMain.js
+* Author: Aniket Dashpute
+* Credits:
+* Most of the code is starter code
+* by Prof. Jack Tumblin, Northwestern University
+* Incorporated some of the coding style from:
+* https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial
+*/
+
 // Render a cube on a black screen
 
 function main()
