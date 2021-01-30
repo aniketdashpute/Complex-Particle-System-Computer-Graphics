@@ -14,15 +14,8 @@ function main()
         return;
     }
 
-    // get the vertex and fragment shader strings
-    var vsSource = document.getElementById("vertex-shader").textContent;
-    var fsSource = document.getElementById("fragment-shader").textContent;
-    // Initialize shaders and set the program with VS and FS source as given in input
-    if (!initShaders(gl, vsSource, fsSource))
-    {
-		console.log('main() Failed to intialize shaders.');
-		return;
-    }
+    // initialize the shaders and create program
+    initializeShaders(gl);
     
     // Look up all the attributes and uniforms our shader program is using
     // and store them in programInfo to be used directly later
@@ -34,6 +27,89 @@ function main()
     // Draw the cube
     drawScene(gl, programInfo, buffers);
 }
+
+function initializeShaders(gl)
+{
+    // get the vertex and fragment shader strings
+    var vsSource = document.getElementById("vertex-shader").textContent;
+    var fsSource = document.getElementById("fragment-shader").textContent;
+    // Initialize shaders and set the program with VS and FS source as given in input
+    if (!initShaders(gl, vsSource, fsSource))
+    {
+		console.log('main() Failed to intialize shaders.');
+		return;
+    }
+}
+
+function setProjectionMatrix(gl, programInfo)
+{
+    // create and set the perspective matrix
+
+    // FOVY: top-to-bottom vertical image angle, in degrees
+    const fieldOfView = 45;
+    // Image Aspect Ratio
+    const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+    // camera z-near distance (always positive; frustum begins at z = -znear)
+    const zNear = 0.1;
+    // camera z-far distance (always positive; frustum ends at z = -zfar)
+    const zFar = 1000.0;
+
+    var projectionMatrix = new Matrix4();
+    projectionMatrix.setIdentity();
+
+    projectionMatrix.perspective(
+        fieldOfView,
+        aspect,
+        zNear,
+        zFar);
+    
+    
+    // In this coord system, our up vector is z-axis
+    // Initially, our viewing angle is such that the screen is x-z plane
+    // and inside screen is +y-axis
+
+    // The position of the eye point
+    var eyeX = 0.0, eyeY = -10.0, eyeZ = 0.0;
+    // The position of the reference point
+    var centerX = 0.0, centerY = 0.0, centerZ = 0.0;
+    // 'up' vector
+    var upX = 0.0, upY = 0.0, upZ = 1.0;
+    projectionMatrix.lookAt(
+        eyeX, eyeY, eyeZ,
+        centerX, centerY, centerZ,
+        upX, upY, upZ);
+        
+    // Pass our current matrix to the vertex shader
+	gl.uniformMatrix4fv(
+        programInfo.uniformLocations.projectionMatrix,
+        false,
+        projectionMatrix.elements);
+}
+
+function setModelViewMatrixCube(gl, programInfo, currentAngle)
+{
+    // create and set the model view matrix
+
+    // our viewing angle is such that the screen is x-z plane
+    // and inside screen is +y-axis
+
+    var modelViewMatrix = new Matrix4();
+    
+    modelViewMatrix.setIdentity();
+    // translate cube
+    modelViewMatrix.translate(0.0, 0.0, 3.0);
+    // scale cube
+    modelViewMatrix.scale(1.0, 1.0, 1.0);
+    // rotate cube around specified axis (ax,ay,az)
+    modelViewMatrix.rotate(currentAngle, 0, 1, 0);
+
+    // Pass our current matrix to the vertex shaders:
+	gl.uniformMatrix4fv(
+        programInfo.uniformLocations.modelViewMatrix,
+        false,
+        modelViewMatrix.elements);
+}
+
 
 function getAtrribsAndUniforms(gl)
 {
@@ -47,8 +123,8 @@ function getAtrribsAndUniforms(gl)
         },
         uniformLocations:
         {
-        //   projectionMatrix: gl.getUniformLocation(gl.program, 'uProjectionMatrix'),
-        //   modelViewMatrix: gl.getUniformLocation(gl.program, 'uModelViewMatrix'),
+            projectionMatrix: gl.getUniformLocation(gl.program, 'u_ProjectionMatrix'),
+            modelViewMatrix: gl.getUniformLocation(gl.program, 'u_ModelViewMatrix'),
         }
     };
 
@@ -266,6 +342,14 @@ function drawScene(gl, programInfo, buffers)
   
     // specify the layout of the input buffer provided to the VS
     setVertexInputLayout(gl, buffers, programInfo);
+
+    // specify the perspective projection required for viewing
+    setProjectionMatrix(gl, programInfo);
+
+    // specify the modelView matrix for transforming our cube
+    // temp:
+    var currentAngle = 45;
+    setModelViewMatrixCube(gl, programInfo, currentAngle);
 
     // data type for indices
     const type = gl.UNSIGNED_SHORT;

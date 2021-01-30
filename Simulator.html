@@ -16,6 +16,8 @@ run ParticleSystemMain.js to clear screen-->
             // an attribute will receive data from a buffer
             attribute vec4 a_Position;
             attribute vec4 a_Color;
+            uniform mat4 u_ModelViewMatrix;
+            uniform mat4 u_ProjectionMatrix;
 
             // output colour, will be used as input in fragment shader
             varying vec4 v_Color;
@@ -23,7 +25,7 @@ run ParticleSystemMain.js to clear screen-->
             // all shaders have a main function
             void main()
             {
-                gl_Position = a_Position;
+                gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * a_Position;
                 v_Color = a_Color;
             }
                  
