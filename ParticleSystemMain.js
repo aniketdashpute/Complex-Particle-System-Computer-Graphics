@@ -11,6 +11,19 @@
 // Render a cube on a black screen
 // Also Render a ground beneath it
 
+// Global variables required for animation
+
+// time when animate() was last called
+var g_last = Date.now();
+// current timestep in milliseconds (init to 1/60th sec) 
+var g_timeStep = 1000.0 / 60.0;
+
+// TO DO: temp arrangement, need to move code later
+// initialize current rotation angle of cube
+currentAngle = 0;
+// amount of angle to be rotated in 1000ms
+angleQuant = 90;
+
 function main()
 {
     // Initialize and get GL context
@@ -29,8 +42,35 @@ function main()
     // Initialize the buffers that we will need for drawing ground
     var buffersGround = initBuffersGround(gl);
 
-    // Draw the cube and ground
-    drawScene(gl, programInfo, buffersCube, buffersGround);
+    // recursively call tick() using requestAnimationFrame
+    var tick = function ()
+    {
+        // get time elapsed since last animate() call
+		g_timeStep = animate();
+		// if it took more than 200 ms (due to any reason), reduce the timestep
+		if (g_timeStep > 200) { g_timeStep = 1000 / 60; }
+        
+        // Draw the cube and ground
+        drawScene(gl, programInfo, buffersCube, buffersGround);
+        
+		requestAnimationFrame(tick);
+	};
+	tick();
+}
+
+/*
+* Returns how much time (in ms)
+* passed since the last call to this fcn.
+*/
+function animate() {
+    // get current time
+    var now = Date.now();
+    // amount of time passed, in integer milliseconds
+    var elapsed = now - g_last;
+    // re-set our stopwatch/timer.
+	g_last = now;
+
+	return elapsed;
 }
 
 function getGlContext()
@@ -531,9 +571,9 @@ function drawCube(gl, buffers, programInfo)
     // specify the perspective projection required for viewing
     setProjectionMatrix(gl, programInfo);
 
+    // set the angle at which we want our cube now
+    currentAngle += (g_timeStep * angleQuant)/1000;
     // specify the modelView matrix for transforming our cube
-    // temp:
-    var currentAngle = 45;
     setModelViewMatrixCube(gl, programInfo, currentAngle);
 
     // data type for indices
@@ -552,8 +592,8 @@ function drawGround(gl, buffers, programInfo)
 
     // specify the modelView matrix for transforming our ground
     // temp:
-    var currentAngle = 0;
-    setModelViewMatrixGround(gl, programInfo, currentAngle);
+    var currentAngleTemp = 0;
+    setModelViewMatrixGround(gl, programInfo, currentAngleTemp);
     
     // start drawing from this index in vertex array
     var nFirst = 0;
