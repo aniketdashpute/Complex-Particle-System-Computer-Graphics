@@ -41,6 +41,7 @@ run ParticleSystemMain.js to clear screen-->
             // all shaders have a main function
             void main()
             {
+                gl_PointSize = 10.0;
                 gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * a_Position;
                 v_Color = a_Color;
             }
@@ -68,7 +69,9 @@ run ParticleSystemMain.js to clear screen-->
         <script src="lib/cuon-matrix-quat03.js"></script>    
 
         <script src = "EventHandlerUtils.js"></script>
-        <script src = "ParticleSystemMain.js"></script>
+        <script src = "CForcer.js"></script>
+        <script src = "CLimit.js"></script>
         <script src = "PartSys.js"></script>
+        <script src = "ParticleSystemMain.js"></script>
     </body>
 </html>
