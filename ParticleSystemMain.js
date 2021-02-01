@@ -15,6 +15,7 @@
 // Can tilt camera angle up/down ^/v
 
 // Move front/back
+// Move left/right
 
 
 // Global variables required for animation
@@ -206,7 +207,15 @@ function myKeyDown(kev) {
         case "KeyS":
             moveCameraBack();
 			console.log("S key (Move back)");
-			break;
+            break;
+        case "KeyA":
+            moveCameraLeft();
+			console.log("W key (Move front)");
+            break;
+        case "KeyD":
+            moveCameraRight();
+			console.log("S key (Move back)");
+			break;            
 		default:
 			console.log("UNUSED key:", kev.keyCode);
 			break;
@@ -284,7 +293,7 @@ function setVertexInputLayout(gl, buffers, programInfo)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.index);
 }
 
-function moveCameraSideways(displDelta)
+function moveCameraInOut(displDelta)
 {
     var fx = centerX - eyeX;
     var fy = centerY - eyeY;
@@ -306,16 +315,56 @@ function moveCameraSideways(displDelta)
 
 }
 
+function moveCameraSideways(displDelta)
+{
+    var fx = centerX - eyeX;
+    var fy = centerY - eyeY;
+    var fz = centerZ - eyeZ;
+  
+    // Normalize f.
+    var rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
+    fx *= rlf;
+    fy *= rlf;
+    fz *= rlf;
+  
+    // Calculate cross product of f and up.
+    var sx = fy * upZ - fz * upY;
+    var sy = fz * upX - fx * upZ;
+    var sz = fx * upY - fy * upX;
+
+    centerX += displDelta*sx;
+    centerY += displDelta*sy;
+    centerZ += displDelta*sz;
+
+    eyeX += displDelta*sx;
+    eyeY += displDelta*sy;
+    eyeZ += displDelta*sz;
+}
+
 function moveCameraFront()
 {
     console.log("moveCameraFront() called");
 
-    moveCameraSideways(distChange);
+    moveCameraInOut(distChange);
 }
 
 function moveCameraBack()
 {
     console.log("moveCameraBack() called");
+
+    moveCameraInOut(-distChange);
+}
+
+function moveCameraRight()
+{
+    console.log("moveCameraRight() called");
+
+    moveCameraSideways(distChange);
+}
+
+function moveCameraLeft()
+{
+    console.log("moveCameraLeft() called");
 
     moveCameraSideways(-distChange);
 }
