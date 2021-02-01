@@ -10,8 +10,11 @@
 
 // Render a cube on a black screen
 // Also Render a ground beneath it
+
 // Can tilt camera angle left/right </>
 // Can tilt camera angle up/down ^/v
+
+// Move front/back
 
 
 // Global variables required for animation
@@ -37,6 +40,7 @@ upX = 0.0, upY = 0.0, upZ = 1.0;
 // angle of rotaiton (for tilt left-right)
 theta = Math.PI/2;
 thetaChange = Math.PI/10;
+distChange = 0.5;
 
 function main()
 {
@@ -195,6 +199,14 @@ function myKeyDown(kev) {
             tiltCameraDown();
 			console.log("Arrow-Down key (Turn downwards)");
 			break;
+        case "KeyW":
+            moveCameraFront();
+			console.log("W key (Move front)");
+            break;
+        case "KeyS":
+            moveCameraBack();
+			console.log("S key (Move back)");
+			break;
 		default:
 			console.log("UNUSED key:", kev.keyCode);
 			break;
@@ -270,6 +282,42 @@ function setVertexInputLayout(gl, buffers, programInfo)
     // Tell WebGL which indices to use to index the vertices
     // will be null if no index buffer exists
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.index);
+}
+
+function moveCameraSideways(displDelta)
+{
+    var fx = centerX - eyeX;
+    var fy = centerY - eyeY;
+    var fz = centerZ - eyeZ;
+  
+    // Normalize f.
+    var rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
+    fx *= rlf;
+    fy *= rlf;
+    fz *= rlf;
+
+    centerX += displDelta*fx;
+    centerY += displDelta*fy;
+    centerZ += displDelta*fz;
+
+    eyeX += displDelta*fx;
+    eyeY += displDelta*fy;
+    eyeZ += displDelta*fz;
+
+}
+
+function moveCameraFront()
+{
+    console.log("moveCameraFront() called");
+
+    moveCameraSideways(distChange);
+}
+
+function moveCameraBack()
+{
+    console.log("moveCameraBack() called");
+
+    moveCameraSideways(-distChange);
 }
 
 function tiltCameraVertically(thetaDelta)
