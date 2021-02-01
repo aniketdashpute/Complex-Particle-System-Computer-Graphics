@@ -61,9 +61,6 @@ function main()
     // Init Camera
     initCameraParams();
 
-    // Initialize direction vectors
-    calcDirectionVectors();
-
     // recursively call tick() using requestAnimationFrame
     var tick = function ()
     {
@@ -88,6 +85,9 @@ function initCameraParams()
     centerX = 0.0, centerY = 0.0, centerZ = 3.0;
     // 'up' vector
     upX = 0.0, upY = 0.0, upZ = 1.0;
+
+    // Initialize direction vectors
+    calcDirectionVectors();
 }
 
 /*
@@ -724,7 +724,11 @@ function myKeyDown(kev) {
         case "KeyD":
             moveCameraRight();
 			console.log("S key (Move back)");
-			break;            
+            break;
+        case "KeyG":
+            initCameraParams();
+			console.log("G key (Reset Camera)");
+			break;
 		default:
 			console.log("UNUSED key:", kev.keyCode);
 			break;
