@@ -1,4 +1,4 @@
-/*
+/*******************************************************************
 * File: ParticleSystemMain.js
 * Author: Aniket Dashpute
 * Credits:
@@ -6,10 +6,13 @@
 * by Prof. Jack Tumblin, Northwestern University
 * Incorporated some of the coding style from:
 * https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial
-*/
+*******************************************************************/
 
 // Render a cube on a black screen
 // Also Render a ground beneath it
+// Can tilt camera angle left/right </>
+// Can tilt camera angle up/down ^/v
+
 
 // Global variables required for animation
 
@@ -24,17 +27,31 @@ currentAngle = 0;
 // amount of angle to be rotated in 1000ms
 angleQuant = 90;
 
+
+// The position of the eye point
+eyeX = 0.0, eyeY = -10.0, eyeZ = 3.0;
+// The position of the reference point
+centerX = 0.0, centerY = 0.0, centerZ = 3.0;
+// 'up' vector
+upX = 0.0, upY = 0.0, upZ = 1.0;
+// angle of rotaiton (for tilt left-right)
+theta = Math.PI/2;
+thetaChange = Math.PI/10;
+
 function main()
 {
     // Initialize and get GL context
-    const gl = getGlContext();
+    gl = getGlContext();
+
+    // initialize mouse and keyboard click events
+    initializeEventListeners();
 
     // initialize the shaders and create program
     initializeShaders(gl);
     
     // Look up all the attributes and uniforms our shader program is using
     // and store them in programInfo to be used directly later
-    const programInfo = getAtrribsAndUniforms(gl);
+    programInfo = getAtrribsAndUniforms(gl);
 
     // Initialize the buffers that we will need for drawing cube
     var buffersCube = initBuffersCube(gl);
@@ -123,6 +140,67 @@ function getAtrribsAndUniforms(gl)
     return programInfo;
 }
 
+function initializeEventListeners()
+{
+	// ( https://www.w3schools.com/jsref/met_document_addeventlistener.asp )
+    window.addEventListener("keydown", myKeyDown, false);
+	// window.addEventListener("keyup", myKeyUp, false);
+	// window.addEventListener("mousedown", myMouseDown);
+	// window.addEventListener("mousemove", myMouseMove);
+	// window.addEventListener("mouseup", myMouseUp);
+	// window.addEventListener("click", myMouseClick);
+	// window.addEventListener("dblclick", myMouseDblClick);
+	// within the HTML-5 canvas where we draw our WebGL results, try:
+	// g_canvasID.addEventListener("click", myCanvasClick);
+}
+
+function myKeyDown(kev) {
+	// Called when user presses down ANY key on the keyboard;
+	// For a light, easy explanation of keyboard events in JavaScript,
+	// see:    http://www.kirupa.com/html5/keyboard_events_in_javascript.htm
+	// For a thorough explanation of a mess of JavaScript keyboard event handling,
+	// see:    http://javascript.info/tutorial/keyboard-events
+	// NOTE: Mozilla deprecated the 'keypress' event entirely, and in the
+	//        'keydown' event deprecated several read-only properties I used
+	//        previously, including kev.charCode, kev.keyCode. 
+	//        Revised 2/2019:  use kev.key and kev.code instead.
+
+    // On webpage, report EVERYTING about this key-down event:
+    // clear old result
+	document.getElementById('KeyDown').innerHTML = '';
+	document.getElementById('KeyMod').innerHTML = '';
+	document.getElementById('KeyMod').innerHTML =
+		"   --kev.code:" + kev.code + "      --kev.key:" + kev.key +
+		"<br>--kev.ctrlKey:" + kev.ctrlKey + " --kev.shiftKey:" + kev.shiftKey +
+		"<br> --kev.altKey:" + kev.altKey + "  --kev.metaKey:" + kev.metaKey;
+
+	// // RESET our g_timeStep min/max recorder on every key-down event:
+	// g_timeStepMin = g_timeStep;
+	// g_timeStepMax = g_timeStep;
+
+	switch (kev.code) {
+		case "ArrowLeft":
+            tiltCameraLeft();
+			console.log("Arrow-Left key (Turn left)");
+			break;
+		case "ArrowRight":
+            tiltCameraRight();
+			console.log("Arrow-Right key (Turn right)");
+			break;
+		case "ArrowUp":
+            tiltCameraUp();
+			console.log("Arrow-Up key (Turn upwards)");
+			break;
+		case "ArrowDown":
+            tiltCameraDown();
+			console.log("Arrow-Down key (Turn downwards)");
+			break;
+		default:
+			console.log("UNUSED key:", kev.keyCode);
+			break;
+	}
+}
+
 function setVertexInputLayout(gl, buffers, programInfo)
 {
     // Vertices ->
@@ -194,6 +272,136 @@ function setVertexInputLayout(gl, buffers, programInfo)
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.index);
 }
 
+function tiltCameraVertically(thetaDelta)
+{
+    theta = thetaDelta;
+
+    var fx = centerX - eyeX;
+    var fy = centerY - eyeY;
+    var fz = centerZ - eyeZ;
+  
+    // Normalize f.
+    var rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
+    fx *= rlf;
+    fy *= rlf;
+    fz *= rlf;
+  
+    // Calculate cross product of f and up.
+    var sx = fy * upZ - fz * upY;
+    var sy = fz * upX - fx * upZ;
+    var sz = fx * upY - fy * upX;
+  
+    // Normalize s.
+    var rls = 1 / Math.sqrt(sx*sx + sy*sy + sz*sz);
+    sx *= rls;
+    sy *= rls;
+    sz *= rls;
+
+    // Calculate cross product of s and f -> get the new up-vector
+    upX = sy * fz - sz * fy;
+    upY = sz * fx - sx * fz;
+    upZ = sx * fy - sy * fx;
+
+    console.log("BEFORE centerX: %f, centerY: %f, centerZ: %f", centerX, centerY, centerZ);
+
+    console.log("fx: %f, fy: %f, fz: %f", fx, fy, fz);
+    console.log("sx: %f, sy: %f, sz: %f", sx, sy, sz);
+
+    var Lx = centerX - eyeX;
+    var Ly = centerY - eyeY;
+    var Lz = centerZ - eyeZ; 
+    var L = Math.sqrt(Lx*Lx + Ly*Ly + Lz*Lz);
+    console.log("L: %f", L);
+    console.log("Math.cos(%d): %f", (theta*180)/(Math.PI), Math.cos(theta));
+    console.log("Math.sin(%d): %f", (theta*180)/(Math.PI), Math.sin(theta));
+
+    centerX = eyeX + L * (Math.cos(theta)*fx + Math.sin(theta)*upX);
+    centerY = eyeY + L * (Math.cos(theta)*fy + Math.sin(theta)*upY);
+    centerZ = eyeZ + L * (Math.cos(theta)*fz + Math.sin(theta)*upZ);
+    console.log("eyeZ: %f", eyeZ);
+    console.log("AFTER centerX: %f, centerY: %f, centerZ: %f", centerX, centerY, centerZ);
+
+}
+
+function tiltCameraSideways(thetaDelta)
+{
+    theta = Math.PI/2.0 + thetaDelta;
+
+    var fx = centerX - eyeX;
+    var fy = centerY - eyeY;
+    var fz = centerZ - eyeZ;
+  
+    // Normalize f.
+    var rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
+    fx *= rlf;
+    fy *= rlf;
+    fz *= rlf;
+  
+    // Calculate cross product of f and up.
+    var sx = fy * upZ - fz * upY;
+    var sy = fz * upX - fx * upZ;
+    var sz = fx * upY - fy * upX;
+  
+    // Normalize s.
+    var rls = 1 / Math.sqrt(sx*sx + sy*sy + sz*sz);
+    sx *= rls;
+    sy *= rls;
+    sz *= rls;
+
+    console.log("BEFORE centerX: %f, centerY: %f, centerZ: %f", centerX, centerY, centerZ);
+
+    console.log("fx: %f, fy: %f, fz: %f", fx, fy, fz);
+    console.log("sx: %f, sy: %f, sz: %f", sx, sy, sz);
+
+    var Lx = centerX - eyeX;
+    var Ly = centerY - eyeY;
+    var Lz = centerZ - eyeZ; 
+    var L = Math.sqrt(Lx*Lx + Ly*Ly + Lz*Lz);
+    console.log("L: %f", L);
+    console.log("Math.cos(%d): %f", (theta*180)/(Math.PI), Math.cos(theta));
+    console.log("Math.sin(%d): %f", (theta*180)/(Math.PI), Math.sin(theta));
+
+    centerX = eyeX + L * (Math.cos(theta)*sx + Math.sin(theta)*fx);
+    centerY = eyeY + L * (Math.cos(theta)*sy + Math.sin(theta)*fy);
+    centerZ = eyeZ + L * (Math.cos(theta)*sz + Math.sin(theta)*fz);
+    console.log("eyeZ: %f", eyeZ);
+    console.log("AFTER centerX: %f, centerY: %f, centerZ: %f", centerX, centerY, centerZ);
+
+    // Calculate cross product of s and f -> get the new up-vector
+    upX = sy * fz - sz * fy;
+    upY = sz * fx - sx * fz;
+    upZ = sx * fy - sy * fx;
+
+}
+
+function tiltCameraUp()
+{
+    console.log("tiltCameraUp() called");
+
+    tiltCameraVertically(thetaChange);
+}
+
+function tiltCameraDown()
+{
+    console.log("tiltCameraUp() called");
+
+    tiltCameraVertically(-thetaChange);
+}
+
+function tiltCameraLeft()
+{
+    console.log("tiltCameraLeft() called");
+
+    tiltCameraSideways(thetaChange);
+}
+
+function tiltCameraRight()
+{
+    console.log("tiltCameraRight() called");
+
+    tiltCameraSideways(-thetaChange);
+}
+
 function setProjectionMatrix(gl, programInfo)
 {
     // create and set the perspective matrix
@@ -207,7 +415,7 @@ function setProjectionMatrix(gl, programInfo)
     // camera z-far distance (always positive; frustum ends at z = -zfar)
     const zFar = 1000.0;
 
-    var projectionMatrix = new Matrix4();
+    projectionMatrix = new Matrix4();
     projectionMatrix.setIdentity();
 
     projectionMatrix.perspective(
@@ -215,23 +423,24 @@ function setProjectionMatrix(gl, programInfo)
         aspect,
         zNear,
         zFar);
-    
-    
+
     // In this coord system, our up vector is z-axis
     // Initially, our viewing angle is such that the screen is x-z plane
     // and inside screen is +y-axis
 
-    // The position of the eye point
-    var eyeX = 0.0, eyeY = -10.0, eyeZ = 6.0;
-    // The position of the reference point
-    var centerX = 0.0, centerY = 0.0, centerZ = 3.0;
-    // 'up' vector
-    var upX = 0.0, upY = 0.0, upZ = 1.0;
+    // TO DO: Commented. Added as global variables now
+    // // The position of the eye point
+    // eyeX = 0.0, eyeY = -10.0, eyeZ = 6.0;
+    // // The position of the reference point
+    // centerX = 0.0, centerY = 0.0, centerZ = 3.0;
+    // // 'up' vector
+    // upX = 0.0, upY = 0.0, upZ = 1.0;
+
     projectionMatrix.lookAt(
         eyeX, eyeY, eyeZ,
         centerX, centerY, centerZ,
         upX, upY, upZ);
-        
+
     // Pass our current matrix to the vertex shader
 	gl.uniformMatrix4fv(
         programInfo.uniformLocations.projectionMatrix,
