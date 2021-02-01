@@ -8,22 +8,6 @@
 * https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial
 *******************************************************************/
 
-
-// Global variables required for animation
-
-// TO DO: temp arrangement, need to move code later
-// time when animate() was last called
-var g_last = Date.now();
-// current timestep in milliseconds (init to 1/60th sec) 
-var g_timeStep = 1000.0 / 60.0;
-
-
-// TO DO: temp arrangement, need to move code later
-// angle of rotaiton (for tilt left-right)
-thetaChange = Math.PI/60;
-distChange = 0.5;
-
-
 function main()
 {
     // Initialize and get GL context
@@ -34,6 +18,10 @@ function main()
 
     // initialize mouse and keyboard click events
     initializeEventListeners();
+
+    // TO DO: temp arrangement
+    // initialize miscellaneous global variables
+    initializeMisc();
 
     // initialize the shaders and create program
     initializeShaders(gl);
@@ -67,6 +55,19 @@ function main()
 	tick();
 }
 
+function initializeMisc()
+{
+    // time when animate() was last called
+    g_last = Date.now();
+    // current timestep in milliseconds (init to 1/60th sec) 
+    g_timeStep = 1000.0 / 60.0;
+
+    // angle of rotation (for tilt left-right)
+    thetaChange = Math.PI/60;
+    // distance to move on key press
+    distChange = 0.5;
+}
+
 function initCameraParams()
 {
     // The position of the eye point
@@ -88,7 +89,8 @@ function initCameraParams()
 * Returns how much time (in ms)
 * passed since the last call to this fcn.
 */
-function animate() {
+function animate()
+{
     // get current time
     var now = Date.now();
     // amount of time passed, in integer milliseconds
