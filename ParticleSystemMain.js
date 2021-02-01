@@ -252,14 +252,6 @@ function setProjectionMatrix(gl, programInfo)
     // Initially, our viewing angle is such that the screen is x-z plane
     // and inside screen is +y-axis
 
-    // TO DO: Commented. Added as global variables now
-    // // The position of the eye point
-    // eyeX = 0.0, eyeY = -10.0, eyeZ = 6.0;
-    // // The position of the reference point
-    // centerX = 0.0, centerY = 0.0, centerZ = 3.0;
-    // // 'up' vector
-    // upX = 0.0, upY = 0.0, upZ = 1.0;
-
     projectionMatrix.lookAt(
         eyeX, eyeY, eyeZ,
         centerX, centerY, centerZ,
