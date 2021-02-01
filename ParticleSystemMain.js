@@ -20,6 +20,7 @@
 
 // Global variables required for animation
 
+// TO DO: temp arrangement, need to move code later
 // time when animate() was last called
 var g_last = Date.now();
 // current timestep in milliseconds (init to 1/60th sec) 
@@ -28,19 +29,12 @@ var g_timeStep = 1000.0 / 60.0;
 // TO DO: temp arrangement, need to move code later
 // initialize current rotation angle of cube
 currentAngle = 0;
-// amount of angle to be rotated in 1000ms
-angleQuant = 90;
 
 
-// The position of the eye point
-eyeX = 0.0, eyeY = -10.0, eyeZ = 3.0;
-// The position of the reference point
-centerX = 0.0, centerY = 0.0, centerZ = 3.0;
-// 'up' vector
-upX = 0.0, upY = 0.0, upZ = 1.0;
+// TO DO: temp arrangement, need to move code later
 // angle of rotaiton (for tilt left-right)
 theta = Math.PI/2;
-thetaChange = Math.PI/10;
+thetaChange = Math.PI/60;
 distChange = 0.5;
 
 function main()
@@ -64,6 +58,12 @@ function main()
     // Initialize the buffers that we will need for drawing ground
     var buffersGround = initBuffersGround(gl);
 
+    // Init Camera
+    initCameraParams();
+
+    // Initialize direction vectors
+    calcDirectionVectors();
+
     // recursively call tick() using requestAnimationFrame
     var tick = function ()
     {
@@ -78,6 +78,16 @@ function main()
 		requestAnimationFrame(tick);
 	};
 	tick();
+}
+
+function initCameraParams()
+{
+    // The position of the eye point
+    eyeX = 0.0, eyeY = -10.0, eyeZ = 3.0;
+    // The position of the reference point
+    centerX = 0.0, centerY = 0.0, centerZ = 3.0;
+    // 'up' vector
+    upX = 0.0, upY = 0.0, upZ = 1.0;
 }
 
 /*
@@ -143,83 +153,6 @@ function getAtrribsAndUniforms(gl)
     };
 
     return programInfo;
-}
-
-function initializeEventListeners()
-{
-	// ( https://www.w3schools.com/jsref/met_document_addeventlistener.asp )
-    window.addEventListener("keydown", myKeyDown, false);
-	// window.addEventListener("keyup", myKeyUp, false);
-	// window.addEventListener("mousedown", myMouseDown);
-	// window.addEventListener("mousemove", myMouseMove);
-	// window.addEventListener("mouseup", myMouseUp);
-	// window.addEventListener("click", myMouseClick);
-	// window.addEventListener("dblclick", myMouseDblClick);
-	// within the HTML-5 canvas where we draw our WebGL results, try:
-	// g_canvasID.addEventListener("click", myCanvasClick);
-}
-
-function myKeyDown(kev) {
-	// Called when user presses down ANY key on the keyboard;
-	// For a light, easy explanation of keyboard events in JavaScript,
-	// see:    http://www.kirupa.com/html5/keyboard_events_in_javascript.htm
-	// For a thorough explanation of a mess of JavaScript keyboard event handling,
-	// see:    http://javascript.info/tutorial/keyboard-events
-	// NOTE: Mozilla deprecated the 'keypress' event entirely, and in the
-	//        'keydown' event deprecated several read-only properties I used
-	//        previously, including kev.charCode, kev.keyCode. 
-	//        Revised 2/2019:  use kev.key and kev.code instead.
-
-    // On webpage, report EVERYTING about this key-down event:
-    // clear old result
-	document.getElementById('KeyDown').innerHTML = '';
-	document.getElementById('KeyMod').innerHTML = '';
-	document.getElementById('KeyMod').innerHTML =
-		"   --kev.code:" + kev.code + "      --kev.key:" + kev.key +
-		"<br>--kev.ctrlKey:" + kev.ctrlKey + " --kev.shiftKey:" + kev.shiftKey +
-		"<br> --kev.altKey:" + kev.altKey + "  --kev.metaKey:" + kev.metaKey;
-
-	// // RESET our g_timeStep min/max recorder on every key-down event:
-	// g_timeStepMin = g_timeStep;
-	// g_timeStepMax = g_timeStep;
-
-	switch (kev.code) {
-		case "ArrowLeft":
-            tiltCameraLeft();
-			console.log("Arrow-Left key (Turn left)");
-			break;
-		case "ArrowRight":
-            tiltCameraRight();
-			console.log("Arrow-Right key (Turn right)");
-			break;
-		case "ArrowUp":
-            tiltCameraUp();
-			console.log("Arrow-Up key (Turn upwards)");
-			break;
-		case "ArrowDown":
-            tiltCameraDown();
-			console.log("Arrow-Down key (Turn downwards)");
-			break;
-        case "KeyW":
-            moveCameraFront();
-			console.log("W key (Move front)");
-            break;
-        case "KeyS":
-            moveCameraBack();
-			console.log("S key (Move back)");
-            break;
-        case "KeyA":
-            moveCameraLeft();
-			console.log("W key (Move front)");
-            break;
-        case "KeyD":
-            moveCameraRight();
-			console.log("S key (Move back)");
-			break;            
-		default:
-			console.log("UNUSED key:", kev.keyCode);
-			break;
-	}
 }
 
 function setVertexInputLayout(gl, buffers, programInfo)
@@ -291,212 +224,6 @@ function setVertexInputLayout(gl, buffers, programInfo)
     // Tell WebGL which indices to use to index the vertices
     // will be null if no index buffer exists
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.index);
-}
-
-function moveCameraInOut(displDelta)
-{
-    var fx = centerX - eyeX;
-    var fy = centerY - eyeY;
-    var fz = centerZ - eyeZ;
-  
-    // Normalize f.
-    var rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
-    fx *= rlf;
-    fy *= rlf;
-    fz *= rlf;
-
-    centerX += displDelta*fx;
-    centerY += displDelta*fy;
-    centerZ += displDelta*fz;
-
-    eyeX += displDelta*fx;
-    eyeY += displDelta*fy;
-    eyeZ += displDelta*fz;
-
-}
-
-function moveCameraSideways(displDelta)
-{
-    var fx = centerX - eyeX;
-    var fy = centerY - eyeY;
-    var fz = centerZ - eyeZ;
-  
-    // Normalize f.
-    var rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
-    fx *= rlf;
-    fy *= rlf;
-    fz *= rlf;
-  
-    // Calculate cross product of f and up.
-    var sx = fy * upZ - fz * upY;
-    var sy = fz * upX - fx * upZ;
-    var sz = fx * upY - fy * upX;
-
-    centerX += displDelta*sx;
-    centerY += displDelta*sy;
-    centerZ += displDelta*sz;
-
-    eyeX += displDelta*sx;
-    eyeY += displDelta*sy;
-    eyeZ += displDelta*sz;
-}
-
-function moveCameraFront()
-{
-    console.log("moveCameraFront() called");
-
-    moveCameraInOut(distChange);
-}
-
-function moveCameraBack()
-{
-    console.log("moveCameraBack() called");
-
-    moveCameraInOut(-distChange);
-}
-
-function moveCameraRight()
-{
-    console.log("moveCameraRight() called");
-
-    moveCameraSideways(distChange);
-}
-
-function moveCameraLeft()
-{
-    console.log("moveCameraLeft() called");
-
-    moveCameraSideways(-distChange);
-}
-
-function tiltCameraVertically(thetaDelta)
-{
-    theta = thetaDelta;
-
-    var fx = centerX - eyeX;
-    var fy = centerY - eyeY;
-    var fz = centerZ - eyeZ;
-  
-    // Normalize f.
-    var rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
-    fx *= rlf;
-    fy *= rlf;
-    fz *= rlf;
-  
-    // Calculate cross product of f and up.
-    var sx = fy * upZ - fz * upY;
-    var sy = fz * upX - fx * upZ;
-    var sz = fx * upY - fy * upX;
-  
-    // Normalize s.
-    var rls = 1 / Math.sqrt(sx*sx + sy*sy + sz*sz);
-    sx *= rls;
-    sy *= rls;
-    sz *= rls;
-
-    // Calculate cross product of s and f -> get the new up-vector
-    upX = sy * fz - sz * fy;
-    upY = sz * fx - sx * fz;
-    upZ = sx * fy - sy * fx;
-
-    console.log("BEFORE centerX: %f, centerY: %f, centerZ: %f", centerX, centerY, centerZ);
-
-    console.log("fx: %f, fy: %f, fz: %f", fx, fy, fz);
-    console.log("sx: %f, sy: %f, sz: %f", sx, sy, sz);
-
-    var Lx = centerX - eyeX;
-    var Ly = centerY - eyeY;
-    var Lz = centerZ - eyeZ; 
-    var L = Math.sqrt(Lx*Lx + Ly*Ly + Lz*Lz);
-    console.log("L: %f", L);
-    console.log("Math.cos(%d): %f", (theta*180)/(Math.PI), Math.cos(theta));
-    console.log("Math.sin(%d): %f", (theta*180)/(Math.PI), Math.sin(theta));
-
-    centerX = eyeX + L * (Math.cos(theta)*fx + Math.sin(theta)*upX);
-    centerY = eyeY + L * (Math.cos(theta)*fy + Math.sin(theta)*upY);
-    centerZ = eyeZ + L * (Math.cos(theta)*fz + Math.sin(theta)*upZ);
-    console.log("eyeZ: %f", eyeZ);
-    console.log("AFTER centerX: %f, centerY: %f, centerZ: %f", centerX, centerY, centerZ);
-
-}
-
-function tiltCameraSideways(thetaDelta)
-{
-    theta = Math.PI/2.0 + thetaDelta;
-
-    var fx = centerX - eyeX;
-    var fy = centerY - eyeY;
-    var fz = centerZ - eyeZ;
-  
-    // Normalize f.
-    var rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
-    fx *= rlf;
-    fy *= rlf;
-    fz *= rlf;
-  
-    // Calculate cross product of f and up.
-    var sx = fy * upZ - fz * upY;
-    var sy = fz * upX - fx * upZ;
-    var sz = fx * upY - fy * upX;
-  
-    // Normalize s.
-    var rls = 1 / Math.sqrt(sx*sx + sy*sy + sz*sz);
-    sx *= rls;
-    sy *= rls;
-    sz *= rls;
-
-    console.log("BEFORE centerX: %f, centerY: %f, centerZ: %f", centerX, centerY, centerZ);
-
-    console.log("fx: %f, fy: %f, fz: %f", fx, fy, fz);
-    console.log("sx: %f, sy: %f, sz: %f", sx, sy, sz);
-
-    var Lx = centerX - eyeX;
-    var Ly = centerY - eyeY;
-    var Lz = centerZ - eyeZ; 
-    var L = Math.sqrt(Lx*Lx + Ly*Ly + Lz*Lz);
-    console.log("L: %f", L);
-    console.log("Math.cos(%d): %f", (theta*180)/(Math.PI), Math.cos(theta));
-    console.log("Math.sin(%d): %f", (theta*180)/(Math.PI), Math.sin(theta));
-
-    centerX = eyeX + L * (Math.cos(theta)*sx + Math.sin(theta)*fx);
-    centerY = eyeY + L * (Math.cos(theta)*sy + Math.sin(theta)*fy);
-    centerZ = eyeZ + L * (Math.cos(theta)*sz + Math.sin(theta)*fz);
-    console.log("eyeZ: %f", eyeZ);
-    console.log("AFTER centerX: %f, centerY: %f, centerZ: %f", centerX, centerY, centerZ);
-
-    // Calculate cross product of s and f -> get the new up-vector
-    upX = sy * fz - sz * fy;
-    upY = sz * fx - sx * fz;
-    upZ = sx * fy - sy * fx;
-
-}
-
-function tiltCameraUp()
-{
-    console.log("tiltCameraUp() called");
-
-    tiltCameraVertically(thetaChange);
-}
-
-function tiltCameraDown()
-{
-    console.log("tiltCameraUp() called");
-
-    tiltCameraVertically(-thetaChange);
-}
-
-function tiltCameraLeft()
-{
-    console.log("tiltCameraLeft() called");
-
-    tiltCameraSideways(thetaChange);
-}
-
-function tiltCameraRight()
-{
-    console.log("tiltCameraRight() called");
-
-    tiltCameraSideways(-thetaChange);
 }
 
 function setProjectionMatrix(gl, programInfo)
@@ -877,6 +604,8 @@ function drawCube(gl, buffers, programInfo)
     // specify the perspective projection required for viewing
     setProjectionMatrix(gl, programInfo);
 
+    // amount of angle to be rotated in 1000ms
+    angleQuant = 90;
     // set the angle at which we want our cube now
     currentAngle += (g_timeStep * angleQuant)/1000;
     // specify the modelView matrix for transforming our cube
@@ -927,5 +656,314 @@ function drawScene(gl, programInfo, buffersCube, buffersGround)
     drawGround(gl, buffersGround, programInfo);
 
 }
+
+
+/**
+ * Camera Controls Section
+ * TO DO: make a new class/file to make code
+ * more readable and modular
+ */
+function initializeEventListeners()
+{
+	// ( https://www.w3schools.com/jsref/met_document_addeventlistener.asp )
+    window.addEventListener("keydown", myKeyDown, false);
+	// window.addEventListener("keyup", myKeyUp, false);
+	// window.addEventListener("mousedown", myMouseDown);
+	// window.addEventListener("mousemove", myMouseMove);
+	// window.addEventListener("mouseup", myMouseUp);
+	// window.addEventListener("dblclick", myMouseDblClick);
+	// within the HTML-5 canvas where we draw our WebGL results, try:
+	// g_canvasID.addEventListener("click", myCanvasClick);
+}
+
+function myKeyDown(kev) {
+	// Called when user presses down ANY key on the keyboard;
+	// For a light, easy explanation of keyboard events in JavaScript,
+	// see:    http://www.kirupa.com/html5/keyboard_events_in_javascript.htm
+	// For a thorough explanation of a mess of JavaScript keyboard event handling,
+	// see:    http://javascript.info/tutorial/keyboard-events
+	// NOTE: Mozilla deprecated the 'keypress' event entirely, and in the
+	//        'keydown' event deprecated several read-only properties I used
+	//        previously, including kev.charCode, kev.keyCode. 
+	//        Revised 2/2019:  use kev.key and kev.code instead.
+
+    // On webpage, report EVERYTING about this key-down event:
+    // clear old result
+	document.getElementById('KeyDown').innerHTML = '';
+	document.getElementById('KeyMod').innerHTML = '';
+	document.getElementById('KeyMod').innerHTML =
+		"   --kev.code:" + kev.code + "      --kev.key:" + kev.key +
+		"<br>--kev.ctrlKey:" + kev.ctrlKey + " --kev.shiftKey:" + kev.shiftKey +
+		"<br> --kev.altKey:" + kev.altKey + "  --kev.metaKey:" + kev.metaKey;
+
+	// // RESET our g_timeStep min/max recorder on every key-down event:
+	// g_timeStepMin = g_timeStep;
+	// g_timeStepMax = g_timeStep;
+
+	switch (kev.code) {
+		case "ArrowLeft":
+            tiltCameraLeft();
+			console.log("Arrow-Left key (Turn left)");
+			break;
+		case "ArrowRight":
+            tiltCameraRight();
+			console.log("Arrow-Right key (Turn right)");
+			break;
+		case "ArrowUp":
+            tiltCameraUp();
+			console.log("Arrow-Up key (Turn upwards)");
+			break;
+		case "ArrowDown":
+            tiltCameraDown();
+			console.log("Arrow-Down key (Turn downwards)");
+			break;
+        case "KeyW":
+            moveCameraFront();
+			console.log("W key (Move front)");
+            break;
+        case "KeyS":
+            moveCameraBack();
+			console.log("S key (Move back)");
+            break;
+        case "KeyA":
+            moveCameraLeft();
+			console.log("W key (Move front)");
+            break;
+        case "KeyD":
+            moveCameraRight();
+			console.log("S key (Move back)");
+			break;            
+		default:
+			console.log("UNUSED key:", kev.keyCode);
+			break;
+	}
+}
+
+function calcDirectionVectors()
+{
+    fx = centerX - eyeX;
+    fy = centerY - eyeY;
+    fz = centerZ - eyeZ;
+  
+    // Normalize f.
+    var rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
+    fx *= rlf;
+    fy *= rlf;
+    fz *= rlf;
+  
+    // Calculate cross product of f and up.
+    sx = fy * upZ - fz * upY;
+    sy = fz * upX - fx * upZ;
+    sz = fx * upY - fy * upX;
+  
+    // Normalize s.
+    var rls = 1 / Math.sqrt(sx*sx + sy*sy + sz*sz);
+    sx *= rls;
+    sy *= rls;
+    sz *= rls;
+
+    // Calculate cross product of s and f -> get the new up-vector
+    uX = sy * fz - sz * fy;
+    uY = sz * fx - sx * fz;
+    uZ = sx * fy - sy * fx;
+
+    console.log("ORIG: centerX: %f, centerY: %f, centerZ: %f", centerX, centerY, centerZ);
+
+    console.log("ORIG fx: %f, fy: %f, fz: %f", fx, fy, fz);
+    console.log("ORIG sx: %f, sy: %f, sz: %f", sx, sy, sz);
+}
+
+function moveCameraInOut(displDelta)
+{
+    fx = centerX - eyeX;
+    fy = centerY - eyeY;
+    fz = centerZ - eyeZ;
+  
+    // Normalize f.
+    var rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
+    fx *= rlf;
+    fy *= rlf;
+    fz *= rlf;
+
+    centerX += displDelta*fx;
+    centerY += displDelta*fy;
+    centerZ += displDelta*fz;
+
+    eyeX += displDelta*fx;
+    eyeY += displDelta*fy;
+    eyeZ += displDelta*fz;
+
+}
+
+function moveCameraSideways(displDelta)
+{
+    var fx = centerX - eyeX;
+    var fy = centerY - eyeY;
+    var fz = centerZ - eyeZ;
+  
+    // Normalize f.
+    var rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
+    fx *= rlf;
+    fy *= rlf;
+    fz *= rlf;
+  
+    // Calculate cross product of f and up.
+    sx = fy * upZ - fz * upY;
+    sy = fz * upX - fx * upZ;
+    sz = fx * upY - fy * upX;
+
+    centerX += displDelta*sx;
+    centerY += displDelta*sy;
+    centerZ += displDelta*sz;
+
+    eyeX += displDelta*sx;
+    eyeY += displDelta*sy;
+    eyeZ += displDelta*sz;
+}
+
+function moveCameraFront()
+{
+    console.log("moveCameraFront() called");
+
+    moveCameraInOut(distChange);
+}
+
+function moveCameraBack()
+{
+    console.log("moveCameraBack() called");
+
+    moveCameraInOut(-distChange);
+}
+
+function moveCameraRight()
+{
+    console.log("moveCameraRight() called");
+
+    moveCameraSideways(distChange);
+}
+
+function moveCameraLeft()
+{
+    console.log("moveCameraLeft() called");
+
+    moveCameraSideways(-distChange);
+}
+
+function tiltCameraVertically(thetaDelta)
+{
+    theta = thetaDelta;
+
+    fx = centerX - eyeX;
+    fy = centerY - eyeY;
+    fz = centerZ - eyeZ;
+  
+    // Normalize f.
+    var rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
+    fx *= rlf;
+    fy *= rlf;
+    fz *= rlf;
+  
+    // s direction will remain same, so it is not changed
+
+    // Calculate cross product of s and f -> get the new "orthogonal" up-vector 
+    uX = sy * fz - sz * fy;
+    uY = sz * fx - sx * fz;
+    uZ = sx * fy - sy * fx;
+
+    console.log("BEFORE centerX: %f, centerY: %f, centerZ: %f", centerX, centerY, centerZ);
+
+    console.log("fx: %f, fy: %f, fz: %f", fx, fy, fz);
+    console.log("sx: %f, sy: %f, sz: %f", sx, sy, sz);
+
+    var Lx = centerX - eyeX;
+    var Ly = centerY - eyeY;
+    var Lz = centerZ - eyeZ; 
+    var L = Math.sqrt(Lx*Lx + Ly*Ly + Lz*Lz);
+    console.log("L: %f", L);
+    console.log("Math.cos(%d): %f", (theta*180)/(Math.PI), Math.cos(theta));
+    console.log("Math.sin(%d): %f", (theta*180)/(Math.PI), Math.sin(theta));
+
+    centerX = eyeX + L * (Math.cos(theta)*fx + Math.sin(theta)*uX);
+    centerY = eyeY + L * (Math.cos(theta)*fy + Math.sin(theta)*uY);
+    centerZ = eyeZ + L * (Math.cos(theta)*fz + Math.sin(theta)*uZ);
+    console.log("eyeZ: %f", eyeZ);
+    console.log("AFTER centerX: %f, centerY: %f, centerZ: %f", centerX, centerY, centerZ);
+
+}
+
+function tiltCameraSideways(thetaDelta)
+{
+    theta = Math.PI/2.0 + thetaDelta;
+
+    var fx = centerX - eyeX;
+    var fy = centerY - eyeY;
+    var fz = centerZ - eyeZ;
+  
+    // Normalize f.
+    var rlf = 1 / Math.sqrt(fx*fx + fy*fy + fz*fz);
+    fx *= rlf;
+    fy *= rlf;
+    fz *= rlf;
+  
+    // Calculate cross product of f and up.
+    sx = fy * upZ - fz * upY;
+    sy = fz * upX - fx * upZ;
+    sz = fx * upY - fy * upX;
+  
+    // Normalize s.
+    var rls = 1 / Math.sqrt(sx*sx + sy*sy + sz*sz);
+    sx *= rls;
+    sy *= rls;
+    sz *= rls;
+
+    // u direction will remain same so it is not changed
+
+    console.log("fx: %f, fy: %f, fz: %f", fx, fy, fz);
+    console.log("sx: %f, sy: %f, sz: %f", sx, sy, sz);
+
+    var Lx = centerX - eyeX;
+    var Ly = centerY - eyeY;
+    var Lz = centerZ - eyeZ; 
+    var L = Math.sqrt(Lx*Lx + Ly*Ly + Lz*Lz);
+    console.log("L: %f", L);
+    console.log("Math.cos(%d): %f", (theta*180)/(Math.PI), Math.cos(theta));
+    console.log("Math.sin(%d): %f", (theta*180)/(Math.PI), Math.sin(theta));
+
+    centerX = eyeX + L * (Math.cos(theta)*sx + Math.sin(theta)*fx);
+    centerY = eyeY + L * (Math.cos(theta)*sy + Math.sin(theta)*fy);
+    // we are not changing Z value as that is in the direction of up vector
+
+    console.log("eyeZ: %f", eyeZ);
+    console.log("AFTER centerX: %f, centerY: %f, centerZ: %f", centerX, centerY, centerZ);
+}
+
+function tiltCameraUp()
+{
+    console.log("tiltCameraUp() called");
+
+    tiltCameraVertically(thetaChange);
+}
+
+function tiltCameraDown()
+{
+    console.log("tiltCameraUp() called");
+
+    tiltCameraVertically(-thetaChange);
+}
+
+function tiltCameraLeft()
+{
+    console.log("tiltCameraLeft() called");
+
+    tiltCameraSideways(thetaChange);
+}
+
+function tiltCameraRight()
+{
+    console.log("tiltCameraRight() called");
+
+    tiltCameraSideways(-thetaChange);
+}
+
 
 window.onload = main();
