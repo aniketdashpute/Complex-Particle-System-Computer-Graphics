@@ -598,19 +598,25 @@ function initBuffersGround(gl)
 function drawPartSys()
 {
     g_isClear = 0;
-    if(g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
+    if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
 
     // specify the perspective projection required for viewing
     setProjectionMatrix(gl, programInfo);
-     
-    g_partA.applyForces(g_partA.s1, g_partA.forceList);  // find current net force on each particle
-    g_partA.dotFinder(g_partA.s1dot, g_partA.s1); // find time-derivative s1dot from s1;
-    g_partA.solver();         // find s2 from s1 & related states.
-    g_partA.doConstraints();  // Apply all constraints.  s2 is ready!
-    g_partA.render();         // transfer current state to VBO, set uniforms, draw it!
-    g_partA.swap();           // Make s2 the new current state s1.s
-    //===========================================
-    //===========================================
+
+    // specify the modelView matrix for transforming our particle system
+    g_partA.setModelViewMatrixPartSys();
+    // find current net force on each particle
+    g_partA.applyForces(g_partA.s1, g_partA.forceList);
+    // find time-derivative s1dot from s1;
+    g_partA.dotFinder(g_partA.s1dot, g_partA.s1);
+    // find s2 from s1 & related states.
+    g_partA.solver();
+    // Apply all constraints, s2 is ready!
+    g_partA.doConstraints();
+    // transfer current state to VBO, set uniforms, draw it!
+    g_partA.render();
+    // Make s2 the new current state s1.s
+    g_partA.swap();
 }
 
 function drawCube(gl, buffers, programInfo)
@@ -737,21 +743,21 @@ function myKeyDown(kev)
             {
                 g_partA.runMode = 3;  // RUN!
                 var j=0; // array index for particle i
-                for(var i = 0; i < g_partA.partCount; i += 1, j+= PART_MAXVAR)
+                for(var i = 0; i < g_partA.partCount; i += 1, j+= Properties.maxVariables)
                 {
                     g_partA.roundRand();  // make a spherical random var.
-                    if(  g_partA.s2[j + PART_XVEL] > 0.0) // ADD to positive velocity, and 
-                        g_partA.s2[j + PART_XVEL] += 1.7 + 0.4*g_partA.randX*g_partA.INIT_VEL;
+                    if(  g_partA.s2[j + Properties.velocity.x] > 0.0) // ADD to positive velocity, and 
+                        g_partA.s2[j + Properties.velocity.x] += 1.7 + 0.4*g_partA.randX*g_partA.INIT_VEL;
                                                             // SUBTRACT from negative velocity: 
-                    else g_partA.s2[j + PART_XVEL] -= 1.7 + 0.4*g_partA.randX*g_partA.INIT_VEL; 
+                    else g_partA.s2[j + Properties.velocity.x] -= 1.7 + 0.4*g_partA.randX*g_partA.INIT_VEL; 
         
-                    if(  g_partA.s2[j + PART_YVEL] > 0.0) 
-                        g_partA.s2[j + PART_YVEL] += 1.7 + 0.4*g_partA.randY*g_partA.INIT_VEL; 
-                    else g_partA.s2[j + PART_YVEL] -= 1.7 + 0.4*g_partA.randY*g_partA.INIT_VEL;
+                    if(  g_partA.s2[j + Properties.velocity.y] > 0.0) 
+                        g_partA.s2[j + Properties.velocity.y] += 1.7 + 0.4*g_partA.randY*g_partA.INIT_VEL; 
+                    else g_partA.s2[j + Properties.velocity.y] -= 1.7 + 0.4*g_partA.randY*g_partA.INIT_VEL;
         
-                    if(  g_partA.s2[j + PART_ZVEL] > 0.0) 
-                        g_partA.s2[j + PART_ZVEL] += 1.7 + 0.4*g_partA.randZ*g_partA.INIT_VEL; 
-                    else g_partA.s2[j + PART_ZVEL] -= 1.7 + 0.4*g_partA.randZ*g_partA.INIT_VEL;
+                    if(  g_partA.s2[j + Properties.velocity.z] > 0.0) 
+                        g_partA.s2[j + Properties.velocity.z] += 1.7 + 0.4*g_partA.randZ*g_partA.INIT_VEL; 
+                    else g_partA.s2[j + Properties.velocity.z] -= 1.7 + 0.4*g_partA.randZ*g_partA.INIT_VEL;
                     }
             }
 
