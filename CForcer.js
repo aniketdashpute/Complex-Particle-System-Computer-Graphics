@@ -1,3 +1,11 @@
+/*******************************************************************
+* File: CForcer.js
+* Author: Aniket Dashpute
+* Credits:
+* Most of the code is starter code
+* by Prof. Jack Tumblin, Northwestern University
+*******************************************************************/
+
 const Forces = {
     // Non-existent force: ignore this CForcer object
     None: 0,
@@ -30,61 +38,70 @@ const Forces = {
 function CForcer()
 {
     // Constructor for a new 'forcer' applied-force object
-    this.forceType = Forces.None;   // initially no force at all.
 
+    // initially no force at all.
+    this.forceType = Forces.None;
 
-    this.targFirst = 0;       // particle-number (count from 0 in state variable)
+    // particle-number (count from 0 in state variable)
+    this.targFirst = 0;
     // of the first particle affected by this CForcer;
-    this.targCount = -1;      // Number of sequential particles in state variable
-                            // affected by this CForcer object. To select ALL 
-                            // particles from 'targFirst' on, set targCount < 0.
-                            // For springs, set targCount=0 & use e1,e2 below.
-                                                  
-    // F_GRAV_E  Earth Gravity variables........................................
-    this.gravConst = 9.832;   // gravity's acceleration(meter/sec^2); 
-	                          // on Earth surface, value is 9.832 meters/sec^2.
-    this.downDir = new Vector4([0,0,-1,1]); // 'down' direction vector for gravity.
 
-    // F_GRAV_P  Planetary Gravity variables....................................
-    // Attractive force on a pair of particles (e1,e2) with strength of
+    // Number of sequential particles in state variable
+    // affected by this CForcer object. To select ALL
+    // particles from 'targFirst' on, set targCount < 0.
+    // For springs, set targCount=0 & use e1,e2 below.
+    this.targCount = -1;
+                                                  
+    // Earth Gravity variables:
+    // gravity's acceleration(meter/sec^2);
+    this.gravConst = 9.832;
+
+    // 'down' direction vector for gravity
+    // -ve Z direction is our 'down' vector
+    this.downDir = new Vector4([0,0,-1,1]);
+
+    // Planetary Gravity variables:
     // F = gravConst * mass1 * mass2 / dist^2.
     // Re-uses 'gravConst' from Earth gravity,
-    this.planetDiam = 10.0;   // Minimum-possible separation distance for e1,e2;
-                            // avoids near-infinite forces when planets collide.
+    // Minimum-possible separation distance for e1,e2;
+    // avoids near-infinite forces when planets collide.
+    this.planetDiam = 10.0;
 
-    // F_DRAG Viscous Drag Variables............................................
-    this.K_drag = 0.15;       // force = -velocity*K_drag.
-                            // (in Euler solver, which assumes constant force
-                            // during each timestep, drag of 0.15 multiplies
-                            // s1 velocity by (1-0.15)==0.85)
+    // Viscous Drag Variables:
+    // force = -velocity*K_drag.
+    // (in Euler solver, which assumes constant force
+    // during each timestep, drag of 0.15 multiplies
+    // s1 velocity by (1-0.15)==0.85)
+    this.K_drag = 0.15;
 
-    // F_BUBBLE Bubble-force variables:.........................................
-    this.bub_radius = 1.0;                   // bubble radius
-    this.bub_ctr = new Vector4(0,0,0,1);     // bubble's center point position
-    this.bub_force = 1.0;      // inward-force's strength when outside the bubble
+    // Bubble-force variables:
+    // bubble radius
+    this.bub_radius = 1.0;
+    // bubble's center point position
+    this.bub_ctr = new Vector4(0,0,0,1);
+    // inward-force's strength when outside the bubble
+    this.bub_force = 1.0;
 
-    // F_SPRING Single Spring variables;........................................
-    this.e1 = 0;               // Spring endpoints connect particle # e1 to # e2
-    this.e2 = 1;               // (state vars hold particles 0,1,2,3,...partCount)
-    this.K_spring;             // Spring constant: force = stretchDistance*K_s
-    this.K_springDamp;         // Spring damping: (friction within the spring);
-                            // force = -relVel*K_damp; 'relative velocity' is
-                            // how fast the spring length is changing, and
-                            // applied along the direction of the spring.
-    this.K_restLength;         // the zero-force length of this spring.
+    // Single Spring variables:
+    // Spring endpoints connect particle # e1 to # e2
+    this.e1 = 0;
+    // (state vars hold particles 0,1,2,3,...partCount)
+    this.e2 = 1;
+    // Spring constant: force = stretchDistance*K_s
+    this.K_spring;
+    // Spring damping: (friction within the spring);
+    // force = -relVel*K_damp; 'relative velocity' is
+    // how fast the spring length is changing, and
+    // applied along the direction of the spring.
+    this.K_springDamp;
+    // the zero-force length of this spring.      
+    this.K_restLength;
 }
 
 CForcer.prototype.printMe = function(opt_src)
 {
     // Print relevant contents of a given CForcer object.
-    if(opt_src && typeof opt_src === 'string')
-    {
-        console.log("------------CForcer ", name, ":----------");
-    }
-    else
-    {
-        console.log("------------CForcer Contents:----------");  
-    }
+    console.log("------------CForcer Contents:----------");  
         
     console.log("targFirst:", this.targFirst, "targCount:", this.targCount);
     var tmp = this.forceType;

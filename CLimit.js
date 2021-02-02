@@ -1,3 +1,11 @@
+/*******************************************************************
+* File: CLimiter.js
+* Author: Aniket Dashpute
+* Credits:
+* Most of the code is starter code
+* by Prof. Jack Tumblin, Northwestern University
+*******************************************************************/
+
 // Each 'CLimit' object contains a 'hitType' member variable whose value
 // selects how particle(s) will respond to collisions with a constraint:
 

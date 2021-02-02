@@ -1,3 +1,13 @@
+/*******************************************************************
+* File: PartSys.js
+* Author: Aniket Dashpute
+* Credits:
+* Most of the code is starter code
+* by Prof. Jack Tumblin, Northwestern University
+* Incorporated some of the coding style from:
+* https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial
+*******************************************************************/
+
 const Properties = {
     position:
     {
@@ -884,7 +894,8 @@ PartSys.prototype.setModelViewMatrixPartSys = function()
     // translate cube
     modelViewMatrix.translate(0.0, 10.0, 1.0);
     // scale cube
-    modelViewMatrix.scale(1.0, 1.0, 1.0);
+    var s = 2.0;
+    modelViewMatrix.scale(s, s, s);
 
     // Pass our current matrix to the vertex shaders:
 	gl.uniformMatrix4fv(

@@ -8,12 +8,6 @@
 * https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial
 *******************************************************************/
 
-// Our first global particle system object; contains 'state variables' s1,s2;
-//---------------------------------------------------------
-// for code, see PartSys.js
-// create our first particle-system object
-var g_partA = new PartSys();
-
 function main()
 {
     // Initialize and get GL context
@@ -44,6 +38,11 @@ function main()
 
     // Init Camera
     initCameraParams();
+
+    // Our first global particle system object; contains 'state variables' s1,s2;
+    // for code, see PartSys.js
+    // create our first particle-system object
+    g_partA = new PartSys();
 
     // Initialize Particle systems:
     // create a 2D bouncy-ball system where
@@ -284,7 +283,8 @@ function setModelViewMatrixCube(gl, programInfo, currentAngle)
     // translate cube
     modelViewMatrix.translate(0.0, 0.0, 3.0);
     // scale cube
-    modelViewMatrix.scale(1.0, 1.0, 1.0);
+    var s = 0.5;
+    modelViewMatrix.scale(s, s, s);
     // rotate cube around specified axis (ax,ay,az)
     modelViewMatrix.rotate(currentAngle, 0, 1, 0);
 
