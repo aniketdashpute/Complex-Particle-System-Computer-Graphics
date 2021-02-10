@@ -784,11 +784,9 @@ function myKeyDown(kev)
                 {
                     g_partA.roundRand();  // make a spherical random var.
                     if(  g_partA.s2[j + Properties.velocity.x] > 0.0) // ADD to positive velocity, and 
-                        g_partA.s2[j + Properties.position.x] = 0.4;
-                        // g_partA.s2[j + Properties.velocity.x] += 1.7 + 0.4*g_partA.randX*g_partA.INIT_VEL;
+                        g_partA.s2[j + Properties.velocity.x] += 1.7 + 0.4*g_partA.randX*g_partA.INIT_VEL;
                                                             // SUBTRACT from negative velocity: 
-                    else g_partA.s2[j + Properties.position.x] = -0.4;
-                    // else g_partA.s2[j + Properties.velocity.x] -= 1.7 + 0.4*g_partA.randX*g_partA.INIT_VEL; 
+                    else g_partA.s2[j + Properties.velocity.x] -= 1.7 + 0.4*g_partA.randX*g_partA.INIT_VEL; 
         
                     if(  g_partA.s2[j + Properties.velocity.y] > 0.0) 
                         g_partA.s2[j + Properties.velocity.y] += 1.7 + 0.4*g_partA.randY*g_partA.INIT_VEL; 
@@ -808,13 +806,15 @@ function myKeyDown(kev)
                 m = 0;
                 var j = m * Properties.maxVariables;
                 console.log("1st: "+g_partB.s2[j + Properties.position.x]);
-                g_partB.s2[j + Properties.position.x] = 0.05;
+                g_partB.s1[j + Properties.position.x] = 0.5;
+                g_partB.s2[j + Properties.position.x] = 0.5;
                 console.log("1st CHANGED: "+g_partB.s2[j + Properties.position.x]);
 
                 m = 1;
                 j = m * Properties.maxVariables;
                 console.log("2nd: "+g_partB.s2[j + Properties.position.x]);
-                g_partB.s2[j + Properties.position.x] = -0.05;
+                g_partB.s1[j + Properties.position.x] = -0.5;
+                g_partB.s2[j + Properties.position.x] = -0.5;
                 console.log("2nd CHANGED: "+g_partB.s2[j + Properties.position.x]);
             }
 		default:
