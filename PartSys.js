@@ -712,27 +712,53 @@ PartSys.prototype.applyForces = function(s, fList)
                 }
                 break;
             case Forces.Spring:
-                // state var array index for particle # m
-                // m is initialized to 0 for first particle e1
-                m = 0;
-                var j = m * Properties.maxVariables;
+                // state var array index for particle # k
+                var k1 = this.e1;
+                var k2 = this.e2;
+                var j1 = k1 * Properties.maxVariables;
+                var j2 = k2 * Properties.maxVariables;
                 // force from spring = K_spring * (length change)
                 // distance from spring center:
-                var distSprCen = (s[j + Properties.position.x] - s[j + Properties.springCenter.x]);
-                var sprLen = 2 * distSprCen;
-                // console.log("sprLen: ", sprLen);
-                var deltaLen = fList[k].K_restLength - sprLen;
-                // console.log("deltaLen1: ", deltaLen);
-                s[j + Properties.force.x] += fList[k].K_spring * (deltaLen);
-                s[j + Properties.force.y] += 0;
-                s[j + Properties.force.z] += 0;
+                var del_x = (s[j1 + Properties.position.x] - s[j2 + Properties.position.x]);
+                var del_y = (s[j1 + Properties.position.y] - s[j2 + Properties.position.y]);
+                var del_z = (s[j1 + Properties.position.z] - s[j2 + Properties.position.z]);
+                
+                // Normalize del (direction of spring deformation)
+                var del_len = 1 / Math.sqrt(del_x*del_x + del_y*del_y + del_z*del_z);
+                del_x *= del_len;
+                del_y *= del_len;
+                del_z *= del_len;
 
-                m = 1;
-                j = m * Properties.maxVariables;
+                // veloctiy of deformation:
+                // it is difference in the velocities of the two particles
+                // at both ends of the spring
+                // But only the velocity components parallel to the spring
+                // would contribute for spring velocity
+                vel1_spring = s[j1 + Properties.velocity.x]*del_x + 
+                s[j1 + Properties.velocity.y]*del_y + s[j1 + Properties.velocity.z]*del_z;
+
+                vel2_spring = s[j2 + Properties.velocity.x]*del_x + 
+                s[j2 + Properties.velocity.y]*del_y + s[j2 + Properties.velocity.z]*del_z;
+
+                // get the magnitude as that is required to calculate the spring damping
+                vel_spring = vel1_spring - vel2_spring;
+                
+                
+                var deltaLen = fList[k].K_restLength - del_len;
                 // force from spring = K_spring * (length change)
-                s[j + Properties.force.x] -= fList[k].K_spring * (deltaLen);
-                s[j + Properties.force.y] -= 0;
-                s[j + Properties.force.z] -= 0;
+                s[j1 + Properties.force.x] += (fList[k].K_spring * (deltaLen * del_x)
+                - (fList[k].K_springDamp * vel_spring * del_x));
+                s[j1 + Properties.force.y] += (fList[k].K_spring * (deltaLen * del_y) 
+                - (fList[k].K_springDamp * vel_spring * del_y));
+                s[j1 + Properties.force.z] += (fList[k].K_spring * (deltaLen * del_z)
+                - (fList[k].K_springDamp * vel_spring * del_z));
+
+                s[j2 + Properties.force.x] -= (fList[k].K_spring * (deltaLen * del_x)
+                - (fList[k].K_springDamp * vel_spring * del_x));
+                s[j2 + Properties.force.y] -= (fList[k].K_spring * (deltaLen * del_y) 
+                - (fList[k].K_springDamp * vel_spring * del_y));
+                s[j2 + Properties.force.z] -= (fList[k].K_spring * (deltaLen * del_z)
+                - (fList[k].K_springDamp * vel_spring * del_z));
 
                 break;
             case Forces.Springset:
