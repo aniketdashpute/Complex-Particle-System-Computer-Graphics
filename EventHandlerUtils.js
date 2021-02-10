@@ -101,6 +101,13 @@ EventHandler.prototype.moveCameraSideways = function(displDelta)
     eyeZ += displDelta*sz;
 }
 
+EventHandler.prototype.moveCameraVertically = function(displDelta)
+{
+    centerZ += displDelta;
+
+    eyeZ += displDelta;
+}
+
 EventHandler.prototype.moveCameraFront = function()
 {
     console.log("moveCameraFront() called");
@@ -127,6 +134,20 @@ EventHandler.prototype.moveCameraLeft = function()
     console.log("moveCameraLeft() called");
 
     this.moveCameraSideways(-distChange);
+}
+
+EventHandler.prototype.moveCameraUp = function()
+{
+    console.log("moveCameraUp() called)");
+
+    this.moveCameraVertically(distChange);
+}
+
+EventHandler.prototype.moveCameraDown = function()
+{
+    console.log("moveCameraDown() called");
+
+    this.moveCameraVertically(-distChange);
 }
 
 EventHandler.prototype.tiltCameraVertically = function(thetaDelta)

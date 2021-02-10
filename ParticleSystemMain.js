@@ -769,6 +769,14 @@ function myKeyDown(kev)
             eventHandler.moveCameraRight();
 			console.log("S key (Move back)");
             break;
+        case "KeyE":
+            eventHandler.moveCameraUp();
+			console.log("E key (move vertically up)");
+            break;
+        case "KeyC":
+            eventHandler.moveCameraDown();
+			console.log("C key (move vertically down)");
+            break;
         case "KeyG":
             initCameraParams();
 			console.log("G key (Reset Camera)");
