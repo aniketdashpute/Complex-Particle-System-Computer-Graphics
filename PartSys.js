@@ -105,6 +105,7 @@ function PartSys()
     this.isFountain = 0;
     this.forceList = [];
     this.limitList = [];
+    this.name = "Particle System - ";
     
     // print out the properties and solver enums
     console.log(Properties);
@@ -114,6 +115,8 @@ function PartSys()
 PartSys.prototype.initBouncy2D = function(count)
 {
     console.log('PartSys.Bouncy2D() initializing...');
+
+    this.name = "Bouncy Balls Particle System";
 
     // Create all state-variables
     this.partCount = count;
@@ -315,6 +318,8 @@ PartSys.prototype.initSpringPair = function(count)
 {
     console.log('PartSys.SpringPair() initializing...');
 
+    this.name = "Spring Particle System";
+
     // Create all state-variables
     this.partCount = count;
     this.s1 =    new Float32Array(this.partCount * Properties.maxVariables);
@@ -379,8 +384,6 @@ PartSys.prototype.initSpringPair = function(count)
 
 
 
-
-
     // Report:
     console.log("PartSys.initSpringPair() created PartSys.forceList[] array of ");
     console.log("\t\t", this.forceList.length, "CForcer objects:");
@@ -393,12 +396,13 @@ PartSys.prototype.initSpringPair = function(count)
 
 
 
+
     // Create constraint-causing objects:
     var cTmp = new CLimit();
     // set how particles 'bounce' from its surface
-    cTmp.hitType = HitType.None;
+    cTmp.hitType = HitType.BounceImpulsive;
     // confine particles inside axis-aligned rectangular volume
-    cTmp.limitType = LimitType.None;
+    cTmp.limitType = LimitType.Volume;
     // applies to ALL particles; starting at 0
     cTmp.targFirst = 0;
     // through all the rest of them
@@ -407,7 +411,7 @@ PartSys.prototype.initSpringPair = function(count)
     var boxLen = 10.0;
     cTmp.xMin = -boxLen; cTmp.xMax = boxLen;
     cTmp.yMin = -1.0; cTmp.yMax = 1.0;
-    cTmp.zMin = -1.0; cTmp.zMax = 1.0;
+    cTmp.zMin = -1.0; cTmp.zMax = boxLen;
     // bouncyness: coeff. of restitution.
     cTmp.Kresti = 1.0;
     // (and IGNORE all other CLimit members...)
@@ -836,233 +840,41 @@ PartSys.prototype.solver = function()
     return;
 }
 
-PartSys.prototype.doConstraints = function(sNow, sNext, cList)
+PartSys.prototype.doConstraints = function(limitList)
 {
-    // bounceType:
-    // ==0 for velocity-reversal, as in all previous versions
-    // ==1 for Chapter 3's collision resolution method, which uses
+    console.log("LimitList length: ", limitList.length);
+    console.log("Particle System type: ", this.name);
 
-    if(this.bounceType==0)
+    // for every CLimit in limitList array,
+    for(var k = 0; k < limitList.length; k++)
     {
-        // i==particle number; j==array index for i-th particle
-        var j = 0;
-
-        for(var i = 0; i < this.partCount; i += 1, j+= Properties.maxVariables)
+        // what kind of force should we apply?
+        switch(limitList[k].limitType)
         {
-            // simple velocity-reversal:
-            if(this.s2[j + Properties.position.x] < -0.9 && this.s2[j + Properties.velocity.x] < 0.0)
-            {
-                // bounce on left (-X) wall
-                this.s2[j + Properties.velocity.x] = -this.resti * this.s2[j + Properties.velocity.x]; 
-            }
-            else if(this.s2[j + Properties.position.x] >  0.9 && this.s2[j + Properties.velocity.x] > 0.0)
-            {		
-                // bounce on right (+X) wall
-                this.s2[j + Properties.velocity.x] = -this.resti * this.s2[j + Properties.velocity.x];
-            }
-
-            if (this.s2[j + Properties.position.y] < -0.9 && this.s2[j + Properties.velocity.y] < 0.0)
-            {
-                // bounce on near wall (-Y)
-                this.s2[j + Properties.velocity.y] = -this.resti * this.s2[j + Properties.velocity.y];
-            }
-            else if (this.s2[j + Properties.position.y] >  0.9 && this.s2[j + Properties.velocity.y] > 0.0)
-            {
-                // bounce on far wall (+Y)
-                   this.s2[j + Properties.velocity.y] = -this.resti * this.s2[j + Properties.velocity.y];
-            }
-
-            if (this.s2[j + Properties.position.z] < -0.9 && this.s2[j + Properties.velocity.z] < 0.0)
-            {
-                // bounce on floor (-Z)
-                this.s2[j + Properties.velocity.z] = -this.resti * this.s2[j + Properties.velocity.z];
-            }
-            else if( this.s2[j + Properties.position.z] >  0.9 && this.s2[j + Properties.velocity.z] > 0.0)
-            {
-                // bounce on ceiling (+Z)
-                this.s2[j + Properties.velocity.z] = -this.resti * this.s2[j + Properties.velocity.z];
-            }
-        
-            // the floor and walls need this position-enforcing constraint as well
-            // floor
-            if(this.s2[j + Properties.position.z] < -0.9) this.s2[j + Properties.position.z] = -0.9;
-            // ceiling
-            else if (this.s2[j + Properties.position.z] >  0.9) this.s2[j + Properties.position.z] =  0.9;
-
-            // near wall
-            if (this.s2[j + Properties.position.y] < -0.9) this.s2[j + Properties.position.y] = -0.9;
-            // far wall
-            else if (this.s2[j + Properties.position.y] >  0.9) this.s2[j + Properties.position.y] =  0.9;
-            
-            // left wall
-            if (this.s2[j + Properties.position.x] < -0.9) this.s2[j + Properties.position.x] = -0.9;
-            // right wall
-            else if (this.s2[j + Properties.position.x] >  0.9) this.s2[j + Properties.position.x] =  0.9;
+            case LimitType.None:
+                console.log("No limit type applied");
+                break;
+            case LimitType.Volume:
+                console.log("Volume Limit applied");
+                limitList[k].enforceLimitVolume(this.bounceType, this.partCount, this.drag, this.s1, this.s2);
+                break;
+            case LimitType.Ball:
+                console.log("Ball constraint applied");
+                break;
+            case LimitType.Wall:
+                console.log("Wall constraint applied");
+                break;
+            case LimitType.Disc:
+                break;
+            case LimitType.Box:
+                break;
+            case LimitType.MatrixVolume:
+                break;
+            default:
+                console.log("Use volume limit as default");
+                break;
         }
     }
-    else if (this.bounceType==1)
-    {
-        // i==particle number; j==array index for i-th particle
-        var j = 0;
-        for(var i = 0; i < this.partCount; i += 1, j+= Properties.maxVariables)
-        {
-            //--------  left (-X) wall  ----------
-            if( this.s2[j + Properties.position.x] < -0.9)
-            {
-                // collision!
-                // 1) resolve contact: put particle at wall.
-                this.s2[j + Properties.position.x] = -0.9;
-                // 2a) undo velocity change:
-                this.s2[j + Properties.velocity.x] = this.s1[j + Properties.velocity.x];
-                // 2b) apply drag:
-                this.s2[j + Properties.velocity.x] *= this.drag;
-                // 3) BOUNCE:  reversed velocity*coeff-of-restitution.
-                // ATTENTION! VERY SUBTLE PROBLEM HERE!
-                // need a velocity-sign test here that ensures the 'bounce' step will 
-                // always send the ball outwards, away from its wall or floor collision. 
-                if (this.s2[j + Properties.velocity.x] < 0.0)
-                {
-                    // need sign change--bounce!
-                    this.s2[j + Properties.velocity.x] = -this.resti * this.s2[j + Properties.velocity.x];
-                }
-                else
-                {
-                    // sign changed-- don't need another.
-                    this.s2[j + Properties.velocity.x] =  this.resti * this.s2[j + Properties.velocity.x];
-                }
-            }
-            //--------  right (+X) wall  --------------------------------------------
-            else if( this.s2[j + Properties.position.x] >  0.9)
-            {
-  		        // collision!
-                this.s2[j + Properties.position.x] = 0.9; // 1) resolve contact: put particle at wall.
-                // 2a) undo velocity change:
-  			    this.s2[j + Properties.velocity.x] = this.s1[j + Properties.velocity.x];
-                // 2b) apply drag:  
-                this.s2[j + Properties.velocity.x] *= this.drag;
-  		        // 3) BOUNCE:  reversed velocity*coeff-of-restitution.
-  			    // ATTENTION! VERY SUBTLE PROBLEM HERE! 
-  			    // need a velocity-sign test here that ensures the 'bounce' step will 
-  			    // always send the ball outwards, away from its wall or floor collision. 
-                if(this.s2[j + Properties.velocity.x] > 0.0)
-                {
-                    // need sign change--bounce!
-  			        this.s2[j + Properties.velocity.x] = -this.resti * this.s2[j + Properties.velocity.x];
-                }
-                else
-                {
-                    // sign changed-- don't need another.
-                    this.s2[j + Properties.velocity.x] =  this.resti * this.s2[j + Properties.velocity.x];
-                }
-            }
-
-            //--------  left (-Y) wall  ----------
-            if( this.s2[j + Properties.position.y] < -0.9)
-            {
-                // collision!
-                // 1) resolve contact: put particle at wall.
-                this.s2[j + Properties.position.y] = -0.9;
-                // 2a) undo velocity change:
-                this.s2[j + Properties.velocity.y] = this.s1[j + Properties.velocity.y];
-                // 2b) apply drag:
-                this.s2[j + Properties.velocity.y] *= this.drag;
-                // 3) BOUNCE:  reversed velocity*coeff-of-restitution.
-                // ATTENTION! VERY SUBTLE PROBLEM HERE!
-                // need a velocity-sign test here that ensures the 'bounce' step will 
-                // always send the ball outwards, away from its wall or floor collision. 
-                if (this.s2[j + Properties.velocity.y] < 0.0)
-                {
-                    // need sign change--bounce!
-                    this.s2[j + Properties.velocity.y] = -this.resti * this.s2[j + Properties.velocity.y];
-                }
-                else
-                {
-                    // sign changed-- don't need another.
-                    this.s2[j + Properties.velocity.y] =  this.resti * this.s2[j + Properties.velocity.y];
-                }
-            }
-            //--------  right (+Y) wall  --------------------------------------------
-            else if( this.s2[j + Properties.position.y] >  0.9)
-            {
-  		        // collision!
-                this.s2[j + Properties.position.y] = 0.9; // 1) resolve contact: put particle at wall.
-                // 2a) undo velocity change:
-  			    this.s2[j + Properties.velocity.y] = this.s1[j + Properties.velocity.y];
-                // 2b) apply drag:  
-                this.s2[j + Properties.velocity.y] *= this.drag;
-  		        // 3) BOUNCE:  reversed velocity*coeff-of-restitution.
-  			    // ATTENTION! VERY SUBTLE PROBLEM HERE! 
-  			    // need a velocity-sign test here that ensures the 'bounce' step will 
-  			    // always send the ball outwards, away from its wall or floor collision. 
-                if(this.s2[j + Properties.velocity.y] > 0.0)
-                {
-                    // need sign change--bounce!
-  			        this.s2[j + Properties.velocity.y] = -this.resti * this.s2[j + Properties.velocity.y];
-                }
-                else
-                {
-                    // sign changed-- don't need another.
-                    this.s2[j + Properties.velocity.y] =  this.resti * this.s2[j + Properties.velocity.y];
-                }
-            }
-
-            //--------  left (-Z) wall  ----------
-            if( this.s2[j + Properties.position.z] < -0.9)
-            {
-                // collision!
-                // 1) resolve contact: put particle at wall.
-                this.s2[j + Properties.position.z] = -0.9;
-                // 2a) undo velocity change:
-                this.s2[j + Properties.velocity.z] = this.s1[j + Properties.velocity.z];
-                // 2b) apply drag:
-                this.s2[j + Properties.velocity.z] *= this.drag;
-                // 3) BOUNCE:  reversed velocity*coeff-of-restitution.
-                // ATTENTION! VERY SUBTLE PROBLEM HERE!
-                // need a velocity-sign test here that ensures the 'bounce' step will 
-                // always send the ball outwards, away from its wall or floor collision. 
-                if (this.s2[j + Properties.velocity.z] < 0.0)
-                {
-                    // need sign change--bounce!
-                    this.s2[j + Properties.velocity.z] = -this.resti * this.s2[j + Properties.velocity.z];
-                }
-                else
-                {
-                    // sign changed-- don't need another.
-                    this.s2[j + Properties.velocity.z] =  this.resti * this.s2[j + Properties.velocity.z];
-                }
-            }
-            //--------  right (+Z) wall  --------------------------------------------
-            else if( this.s2[j + Properties.position.z] >  0.9)
-            {
-  		        // collision!
-                this.s2[j + Properties.position.z] = 0.9; // 1) resolve contact: put particle at wall.
-                // 2a) undo velocity change:
-  			    this.s2[j + Properties.velocity.z] = this.s1[j + Properties.velocity.z];
-                // 2b) apply drag:  
-                this.s2[j + Properties.velocity.z] *= this.drag;
-  		        // 3) BOUNCE:  reversed velocity*coeff-of-restitution.
-  			    // ATTENTION! VERY SUBTLE PROBLEM HERE! 
-  			    // need a velocity-sign test here that ensures the 'bounce' step will 
-  			    // always send the ball outwards, away from its wall or floor collision. 
-                if(this.s2[j + Properties.velocity.z] > 0.0)
-                {
-                    // need sign change--bounce!
-  			        this.s2[j + Properties.velocity.z] = -this.resti * this.s2[j + Properties.velocity.z];
-                }
-                else
-                {
-                    // sign changed-- don't need another.
-                    this.s2[j + Properties.velocity.z] =  this.resti * this.s2[j + Properties.velocity.z];
-                }
-            }
-        }
-    }
-    else
-    {
-        console.log('?!?! unknown constraint: PartSys.bounceType==' + this.bounceType);
-        return;
-    }
-
 
 
 

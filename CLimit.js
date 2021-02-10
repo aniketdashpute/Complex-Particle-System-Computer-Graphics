@@ -117,9 +117,9 @@ function CLimit()
     this.e1 = 0; this.e2 = 1;
 
     // define axis-aligned volume or box
-    this.xMin = 0.0;   this.xMax = 0.0;
-    this.yMin = 0.0;   this.yMax = 0.0;
-    this.zMin = 0.0;   this.zMax = 0.0;
+    this.xMin = -1.0;   this.xMax = 1.0;
+    this.yMin = -1.0;   this.yMax = 1.0;
+    this.zMin = -1.0;   this.zMax = 1.0;
 
     // Orthonormal matrix (translate,rotate ONLY: NO SCALING!)
     // that transforms world drawing axes to 'pose' axes where 
@@ -222,4 +222,247 @@ CLimit.prototype.printMe = function(opt_src)
             break;
     }
     console.log("..........................................");
+
+}
+
+CLimit.prototype.enforceLimitVolume = function(bounceType, partCount, drag, sPrev, sNow)
+{
+    // bounceType:
+    // ==0 for velocity-reversal, as in all previous versions
+    // ==1 for Chapter 3's collision resolution method, which uses
+
+    console.log("inside enforceLimitVolume, bounceType = ", bounceType);
+    K_resti = this.K_resti;
+
+    if(bounceType==0)
+    {
+        // i==particle number; j==array index for i-th particle
+        var j = 0;
+
+        for(var i = 0; i < partCount; i += 1, j+= Properties.maxVariables)
+        {
+            // simple velocity-reversal:
+            if(sNow[j + Properties.position.x] < (this.xMin+0.1) && sNow[j + Properties.velocity.x] < 0.0)
+            {
+                // bounce on left (-X) wall
+                sNow[j + Properties.velocity.x] = -K_resti * sNow[j + Properties.velocity.x]; 
+            }
+            else if(sNow[j + Properties.position.x] >  (this.xMax-0.1) && sNow[j + Properties.velocity.x] > 0.0)
+            {		
+                // bounce on right (+X) wall
+                sNow[j + Properties.velocity.x] = -K_resti * sNow[j + Properties.velocity.x];
+            }
+
+            if (sNow[j + Properties.position.y] < (this.yMin+0.1) && sNow[j + Properties.velocity.y] < 0.0)
+            {
+                // bounce on near wall (-Y)
+                sNow[j + Properties.velocity.y] = -K_resti * sNow[j + Properties.velocity.y];
+            }
+            else if (sNow[j + Properties.position.y] >  (this.yMax-0.1) && sNow[j + Properties.velocity.y] > 0.0)
+            {
+                // bounce on far wall (+Y)
+                   sNow[j + Properties.velocity.y] = -K_resti * sNow[j + Properties.velocity.y];
+            }
+
+            if (sNow[j + Properties.position.z] < (this.zMin+0.1) && sNow[j + Properties.velocity.z] < 0.0)
+            {
+                // bounce on floor (-Z)
+                sNow[j + Properties.velocity.z] = -K_resti * sNow[j + Properties.velocity.z];
+            }
+            else if( sNow[j + Properties.position.z] >  (this.zMax-0.1) && sNow[j + Properties.velocity.z] > 0.0)
+            {
+                // bounce on ceiling (+Z)
+                sNow[j + Properties.velocity.z] = -K_resti * sNow[j + Properties.velocity.z];
+            }
+        
+            // the floor and walls need this position-enforcing constraint as well
+            // floor
+            if(sNow[j + Properties.position.z] < (this.zMin+0.1)) sNow[j + Properties.position.z] = (this.zMin+0.1);
+            // ceiling
+            else if (sNow[j + Properties.position.z] >  (this.zMax-0.1)) sNow[j + Properties.position.z] =  (this.zMax-0.1);
+
+            // near wall
+            if (sNow[j + Properties.position.y] < (this.yMin+0.1)) sNow[j + Properties.position.y] = (this.yMin+0.1);
+            // far wall
+            else if (sNow[j + Properties.position.y] >  (this.yMax-0.1)) sNow[j + Properties.position.y] =  (this.yMax-0.1);
+            
+            // left wall
+            if (sNow[j + Properties.position.x] < (this.xMin+0.1)) sNow[j + Properties.position.x] = (this.xMin+0.1);
+            // right wall
+            else if (sNow[j + Properties.position.x] >  (this.xMax-0.1)) sNow[j + Properties.position.x] =  (this.xMax-0.1);
+        }
+    }
+    else if (bounceType==1)
+    {
+        // i==particle number; j==array index for i-th particle
+        var j = 0;
+        for(var i = 0; i < partCount; i += 1, j+= Properties.maxVariables)
+        {
+            //--------  left (-X) wall  ----------
+            if( sNow[j + Properties.position.x] < (this.xMin+0.1))
+            {
+                // collision!
+                // 1) resolve contact: put particle at wall.
+                sNow[j + Properties.position.x] = (this.xMin+0.1);
+                // 2a) undo velocity change:
+                sNow[j + Properties.velocity.x] = sPrev[j + Properties.velocity.x];
+                // 2b) apply drag:
+                sNow[j + Properties.velocity.x] *= drag;
+                // 3) BOUNCE:  reversed velocity*coeff-of-restitution.
+                // ATTENTION! VERY SUBTLE PROBLEM HERE!
+                // need a velocity-sign test here that ensures the 'bounce' step will 
+                // always send the ball outwards, away from its wall or floor collision. 
+                if (sNow[j + Properties.velocity.x] < 0.0)
+                {
+                    // need sign change--bounce!
+                    sNow[j + Properties.velocity.x] = -K_resti * sNow[j + Properties.velocity.x];
+                }
+                else
+                {
+                    // sign changed-- don't need another.
+                    sNow[j + Properties.velocity.x] =  K_resti * sNow[j + Properties.velocity.x];
+                }
+            }
+            //--------  right (+X) wall  --------------------------------------------
+            else if( sNow[j + Properties.position.x] >  (this.xMax-0.1))
+            {
+  		        // collision!
+                // 1) resolve contact: put particle at wall.
+                sNow[j + Properties.position.x] = (this.xMax-0.1);
+                // 2a) undo velocity change:
+  			    sNow[j + Properties.velocity.x] = sPrev[j + Properties.velocity.x];
+                // 2b) apply drag:  
+                sNow[j + Properties.velocity.x] *= drag;
+  		        // 3) BOUNCE:  reversed velocity*coeff-of-restitution.
+  			    // ATTENTION! VERY SUBTLE PROBLEM HERE! 
+  			    // need a velocity-sign test here that ensures the 'bounce' step will 
+  			    // always send the ball outwards, away from its wall or floor collision. 
+                if(sNow[j + Properties.velocity.x] > 0.0)
+                {
+                    // need sign change--bounce!
+  			        sNow[j + Properties.velocity.x] = -K_resti * sNow[j + Properties.velocity.x];
+                }
+                else
+                {
+                    // sign changed-- don't need another.
+                    sNow[j + Properties.velocity.x] =  K_resti * sNow[j + Properties.velocity.x];
+                }
+            }
+
+            //--------  left (-Y) wall  ----------
+            if( sNow[j + Properties.position.y] < (this.yMin+0.1))
+            {
+                // collision!
+                // 1) resolve contact: put particle at wall.
+                sNow[j + Properties.position.y] = (this.yMin+0.1);
+                // 2a) undo velocity change:
+                sNow[j + Properties.velocity.y] = sPrev[j + Properties.velocity.y];
+                // 2b) apply drag:
+                sNow[j + Properties.velocity.y] *= drag;
+                // 3) BOUNCE:  reversed velocity*coeff-of-restitution.
+                // ATTENTION! VERY SUBTLE PROBLEM HERE!
+                // need a velocity-sign test here that ensures the 'bounce' step will 
+                // always send the ball outwards, away from its wall or floor collision. 
+                if (sNow[j + Properties.velocity.y] < 0.0)
+                {
+                    // need sign change--bounce!
+                    sNow[j + Properties.velocity.y] = -K_resti * sNow[j + Properties.velocity.y];
+                }
+                else
+                {
+                    // sign changed-- don't need another.
+                    sNow[j + Properties.velocity.y] =  K_resti * sNow[j + Properties.velocity.y];
+                }
+            }
+            //--------  right (+Y) wall  --------------------------------------------
+            else if( sNow[j + Properties.position.y] >  (this.yMax-0.1))
+            {
+  		        // collision!
+                // 1) resolve contact: put particle at wall.
+                sNow[j + Properties.position.y] = (this.yMax-0.1);
+                // 2a) undo velocity change:
+  			    sNow[j + Properties.velocity.y] = sPrev[j + Properties.velocity.y];
+                // 2b) apply drag:  
+                sNow[j + Properties.velocity.y] *= drag;
+  		        // 3) BOUNCE:  reversed velocity*coeff-of-restitution.
+  			    // ATTENTION! VERY SUBTLE PROBLEM HERE! 
+  			    // need a velocity-sign test here that ensures the 'bounce' step will 
+  			    // always send the ball outwards, away from its wall or floor collision. 
+                if(sNow[j + Properties.velocity.y] > 0.0)
+                {
+                    // need sign change--bounce!
+  			        sNow[j + Properties.velocity.y] = -K_resti * sNow[j + Properties.velocity.y];
+                }
+                else
+                {
+                    // sign changed-- don't need another.
+                    sNow[j + Properties.velocity.y] =  K_resti * sNow[j + Properties.velocity.y];
+                }
+            }
+
+            //--------  left (-Z) wall  ----------
+            if( sNow[j + Properties.position.z] < (this.zMin+0.1))
+            {
+                // collision!
+                // 1) resolve contact: put particle at wall.
+                sNow[j + Properties.position.z] = (this.zMin+0.1);
+                // 2a) undo velocity change:
+                sNow[j + Properties.velocity.z] = sPrev[j + Properties.velocity.z];
+                // 2b) apply drag:
+                sNow[j + Properties.velocity.z] *= drag;
+                // 3) BOUNCE:  reversed velocity*coeff-of-restitution.
+                // ATTENTION! VERY SUBTLE PROBLEM HERE!
+                // need a velocity-sign test here that ensures the 'bounce' step will 
+                // always send the ball outwards, away from its wall or floor collision. 
+                if (sNow[j + Properties.velocity.z] < 0.0)
+                {
+                    // need sign change--bounce!
+                    sNow[j + Properties.velocity.z] = -K_resti * sNow[j + Properties.velocity.z];
+                }
+                else
+                {
+                    // sign changed-- don't need another.
+                    sNow[j + Properties.velocity.z] =  K_resti * sNow[j + Properties.velocity.z];
+                }
+            }
+            //--------  right (+Z) wall  --------------------------------------------
+            else if( sNow[j + Properties.position.z] >  (this.zMax-0.1))
+            {
+  		        // collision!
+                // 1) resolve contact: put particle at wall.
+                sNow[j + Properties.position.z] = (this.zMax-0.1);
+                // 2a) undo velocity change:
+  			    sNow[j + Properties.velocity.z] = sPrev[j + Properties.velocity.z];
+                // 2b) apply drag:  
+                sNow[j + Properties.velocity.z] *= drag;
+  		        // 3) BOUNCE:  reversed velocity*coeff-of-restitution.
+  			    // ATTENTION! VERY SUBTLE PROBLEM HERE! 
+  			    // need a velocity-sign test here that ensures the 'bounce' step will 
+  			    // always send the ball outwards, away from its wall or floor collision. 
+                if(sNow[j + Properties.velocity.z] > 0.0)
+                {
+                    // need sign change--bounce!
+  			        sNow[j + Properties.velocity.z] = -K_resti * sNow[j + Properties.velocity.z];
+                }
+                else
+                {
+                    // sign changed-- don't need another.
+                    sNow[j + Properties.velocity.z] =  K_resti * sNow[j + Properties.velocity.z];
+                }
+            }
+        }
+    }
+    else
+    {
+        console.log('?!?! unknown constraint: PartSys.bounceType==' + this.bounceType);
+        return;
+    }
+
+    console.log("s1.velocity: ", sPrev[Properties.velocity.x]);
+    console.log("s2.velocity: ", sNow[Properties.velocity.x]);
+
+    return{
+        s1: sPrev,
+        s2: sNow,
+    }
 }

@@ -622,7 +622,7 @@ function drawPartSys1()
     // find s2 from s1 & related states.
     g_partA.solver();
     // Apply all constraints, s2 is ready!
-    g_partA.doConstraints();
+    g_partA.doConstraints(g_partA.limitList);
     // transfer current state to VBO, set uniforms, draw it!
     g_partA.render(0);
     // Make s2 the new current state s1.s
@@ -646,7 +646,7 @@ function drawPartSys2()
     // find s2 from s1 & related states.
     g_partB.solver();
     // Apply all constraints, s2 is ready!
-    g_partB.doConstraints();
+    g_partB.doConstraints(g_partB.limitList);
     // transfer current state to VBO, set uniforms, draw it!
     g_partB.render(2);
     // Make s2 the new current state s1.s
