@@ -57,7 +57,7 @@ function main()
     g_partA.initBouncy2D(200);
 
     // create a 2 particle spring system
-    g_partB.initSpringPair(2);
+    g_partB.initSpringPair(4);
 
     // recursively call tick() using requestAnimationFrame
     var tick = function ()
@@ -86,6 +86,9 @@ function initializeMisc()
     thetaChange = Math.PI/60;
     // distance to move on key press
     distChange = 0.5;
+
+    // default state is play state, will pause only on user input
+    bIsPaused = false;
 }
 
 function initCameraParams()
@@ -117,6 +120,11 @@ function animate()
     var elapsed = now - g_last;
     // re-set our stopwatch/timer.
 	g_last = now;
+
+    if (true == bIsPaused)
+    {
+        elapsed = 0;
+    }
 
 	return elapsed;
 }
@@ -613,20 +621,28 @@ function drawPartSys1()
     // specify the perspective projection required for viewing
     setProjectionMatrix(gl, programInfo);
 
-    // specify the modelView matrix for transforming our particle system
-    g_partA.setModelViewMatrixBouncy();
-    // find current net force on each particle
-    g_partA.applyForces(g_partA.s1, g_partA.forceList);
-    // find time-derivative s1dot from s1;
-    g_partA.dotFinder(g_partA.s1dot, g_partA.s1);
-    // find s2 from s1 & related states.
-    g_partA.solver();
-    // Apply all constraints, s2 is ready!
-    g_partA.doConstraints(g_partA.limitList);
-    // transfer current state to VBO, set uniforms, draw it!
-    g_partA.render(0);
-    // Make s2 the new current state s1.s
-    g_partA.swap();
+    if (false == bIsPaused)
+    {
+        // specify the modelView matrix for transforming our particle system
+        g_partA.setModelViewMatrixBouncy();
+        // find current net force on each particle
+        g_partA.applyForces(g_partA.s1, g_partA.forceList);
+        // find time-derivative s1dot from s1;
+        g_partA.dotFinder(g_partA.s1dot, g_partA.s1);
+        // find s2 from s1 & related states.
+        g_partA.solver();
+        // Apply all constraints, s2 is ready!
+        g_partA.doConstraints(g_partA.limitList);
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partA.render(0);
+        // Make s2 the new current state s1.s
+        g_partA.swap();
+    }
+    else
+    {
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partA.render(0);        
+    }
 }
 
 function drawPartSys2()
@@ -637,20 +653,28 @@ function drawPartSys2()
     // specify the perspective projection required for viewing
     setProjectionMatrix(gl, programInfo);
 
-    // specify the modelView matrix for transforming our particle system
-    g_partB.setModelViewMatrixSpringPair();
-    // find current net force on each particle
-    g_partB.applyForces(g_partB.s1, g_partB.forceList);
-    // find time-derivative s1dot from s1;
-    g_partB.dotFinder(g_partB.s1dot, g_partB.s1);
-    // find s2 from s1 & related states.
-    g_partB.solver();
-    // Apply all constraints, s2 is ready!
-    g_partB.doConstraints(g_partB.limitList);
-    // transfer current state to VBO, set uniforms, draw it!
-    g_partB.render(2);
-    // Make s2 the new current state s1.s
-    g_partB.swap();
+    if (false == bIsPaused)
+    {
+        // specify the modelView matrix for transforming our particle system
+        g_partB.setModelViewMatrixSpringPair();
+        // find current net force on each particle
+        g_partB.applyForces(g_partB.s1, g_partB.forceList);
+        // find time-derivative s1dot from s1;
+        g_partB.dotFinder(g_partB.s1dot, g_partB.s1);
+        // find s2 from s1 & related states.
+        g_partB.solver();
+        // Apply all constraints, s2 is ready!
+        g_partB.doConstraints(g_partB.limitList);
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partB.render(2);
+        // Make s2 the new current state s1.s
+        g_partB.swap();        
+    }
+    else
+    {
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partB.render(2);       
+    }
 }
 
 function drawCube(gl, buffers, programInfo)
@@ -814,17 +838,44 @@ function myKeyDown(kev)
                 m = 0;
                 var j = m * Properties.maxVariables;
                 console.log("1st: "+g_partB.s2[j + Properties.position.x]);
-                g_partB.s1[j + Properties.position.x] = 0.5;
-                g_partB.s2[j + Properties.position.x] = 0.5;
+                g_partB.s1[j + Properties.position.x] += 0.25;
+                g_partB.s1[j + Properties.position.x] += 0.25;
+                g_partB.s1[j + Properties.position.x] += 0.25;
                 console.log("1st CHANGED: "+g_partB.s2[j + Properties.position.x]);
 
                 m = 1;
                 j = m * Properties.maxVariables;
                 console.log("2nd: "+g_partB.s2[j + Properties.position.x]);
-                g_partB.s1[j + Properties.position.x] = -0.5;
-                g_partB.s2[j + Properties.position.x] = -0.5;
+                g_partB.s1[j + Properties.position.x] += -0.5;
+                g_partB.s1[j + Properties.position.y] += -0.5;
+                g_partB.s1[j + Properties.position.z] += -0.5;
+                console.log("2nd CHANGED: "+g_partB.s2[j + Properties.position.x]);
+
+                m = 2;
+                j = m * Properties.maxVariables;
+                console.log("2nd: "+g_partB.s2[j + Properties.position.x]);
+                g_partB.s1[j + Properties.position.x] += -0.25;
+                g_partB.s1[j + Properties.position.y] += -0.25;
+                g_partB.s1[j + Properties.position.z] += -0.25;
+                console.log("2nd CHANGED: "+g_partB.s2[j + Properties.position.x]);
+
+                m = 3;
+                j = m * Properties.maxVariables;
+                console.log("2nd: "+g_partB.s2[j + Properties.position.x]);
+                g_partB.s1[j + Properties.position.x] += 0.5;
+                g_partB.s1[j + Properties.position.y] += 0.5;
+                g_partB.s1[j + Properties.position.z] += 0.5;
                 console.log("2nd CHANGED: "+g_partB.s2[j + Properties.position.x]);
             }
+            break;
+        case "KeyP":
+            console.log("P key (pause)");
+            bIsPaused = true;
+            break;
+        case "KeyL":
+            console.log("L key (play");
+            bIsPaused = false;
+            break;
 		default:
 			console.log("UNUSED key:", kev.keyCode);
 			break;

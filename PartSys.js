@@ -178,9 +178,9 @@ PartSys.prototype.initBouncy2D = function(count)
     // through all the rest of them
     cTmp.partCount = -1;
     // box extent:  +/- 1.0 box at origin
-    cTmp.xMin = -1.0; cTmp.xMax = 1.0;
-    cTmp.yMin = -1.0; cTmp.yMax = 1.0;
-    cTmp.zMin = -1.0; cTmp.zMax = 1.0;
+    cTmp.xMin = 0.0; cTmp.xMax = 2.0;
+    cTmp.yMin = 0.0; cTmp.yMax = 2.0;
+    cTmp.zMin = 0.0; cTmp.zMax = 2.0;
     // bouncyness: coeff. of restitution.
     cTmp.Kresti = 1.0;
     // (and IGNORE all other CLimit members...)
@@ -239,10 +239,10 @@ PartSys.prototype.initBouncy2D = function(count)
         // a 3D unit sphere centered at the origin
         this.roundRand();
         // all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
-        // set random positions in a 0.1-radius ball centered at (-0.8,-0.8,-0.8)
-        this.s1[j + Properties.position.x] = -0.8 + 0.1*this.randX; 
-        this.s1[j + Properties.position.y] = -0.8 + 0.1*this.randY;  
-        this.s1[j + Properties.position.z] = -0.8 + 0.1*this.randZ;
+        // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
+        this.s1[j + Properties.position.x] = 0.8 + 0.1*this.randX; 
+        this.s1[j + Properties.position.y] = 0.8 + 0.1*this.randY;  
+        this.s1[j + Properties.position.z] = 0.8 + 0.1*this.randZ;
         this.s1[j + Properties.position.w] =  1.0;
 
         // Now choose random initial velocities too:
@@ -327,34 +327,40 @@ PartSys.prototype.initSpringPair = function(count)
     this.s1dot = new Float32Array(this.partCount * Properties.maxVariables);  
     // Float32Array objects are zero-filled by default
 
-
-
-
     // Create force-causing objects:
-    var fTmp = new CForcer();
+    var fTmp;
 
-    // Two particle spring system:
-    fTmp.forceType = Forces.Spring;
-    // set it to affect ALL particles
-    fTmp.targFirst = 0;
-    // For springs, set targCount=0 & use e1,e2
-    fTmp.targCount = 0;
-    // start point particle number
-    fTmp.e1 = 0;
-    // end point particle number
-    fTmp.e2 = 1;
-    // Spring constant: force = stretchDistance*K_spring
-    fTmp.K_spring = 2.6;
-    // Spring damping: (friction within the spring);
-    // force = -relVel*K_damp; 'relative velocity' is
-    // how fast the spring length is changing, and
-    // applied along the direction of the spring.
-    fTmp.K_springDamp = 0.6;
-    // the zero-force length of this spring.      
-    fTmp.K_restLength = 2.0;
-    // (and IGNORE all other Cforcer members...)
-    // append this to the forceList array of force-causing objects
-    this.forceList.push(fTmp);
+    // create the spring forces between the 4 particles of the tetrahedron
+    for (i = 0; i< 4; i++)
+    {
+        for (j = i+1; j<4; j++)
+        {
+            console.log("Connecting from P: ", i, "to P: ", j);
+            fTmp = new CForcer();
+            // Two particle spring system:
+            fTmp.forceType = Forces.Spring;
+            // set it to affect ALL particles
+            fTmp.targFirst = 0;
+            // For springs, set targCount=0 & use e1,e2
+            fTmp.targCount = 0;
+            // start point particle number
+            fTmp.e1 = i;
+            // end point particle number
+            fTmp.e2 = j;
+            // Spring constant: force = stretchDistance*K_spring
+            fTmp.K_spring = 0.6;
+            // Spring damping: (friction within the spring);
+            // force = -relVel*K_damp; 'relative velocity' is
+            // how fast the spring length is changing, and
+            // applied along the direction of the spring.
+            fTmp.K_springDamp = 0.6;
+            // the zero-force length of this spring.      
+            fTmp.K_restLength = 2.0;
+            // (and IGNORE all other Cforcer members...)
+            // append this to the forceList array of force-causing objects
+            this.forceList.push(fTmp);
+        }
+    }
 
     // drag for all particles:
     fTmp = new CForcer();
@@ -410,10 +416,10 @@ PartSys.prototype.initSpringPair = function(count)
     // box extent:  +/- 1.0 box at origin
     var boxLen = 10.0;
     cTmp.xMin = -boxLen; cTmp.xMax = boxLen;
-    cTmp.yMin = -1.0; cTmp.yMax = 1.0;
-    cTmp.zMin = -1.0; cTmp.zMax = boxLen;
+    cTmp.yMin = -2 * boxLen; cTmp.yMax = 2 *boxLen;
+    cTmp.zMin = 0.0; cTmp.zMax = boxLen;
     // bouncyness: coeff. of restitution.
-    cTmp.Kresti = 1.0;
+    cTmp.Kresti = 0.9;
     // (and IGNORE all other CLimit members...)
     // append this to array of constraint-causing objects
     this.limitList.push(cTmp);
@@ -440,7 +446,7 @@ PartSys.prototype.initSpringPair = function(count)
     // gravity's acceleration(meter/sec^2); adjust by g/G keys
     this.grav = 9.832;
     // units-free 'Coefficient of Restitution'
-    this.resti = 1.0;
+    this.resti = 0.9;
 
 
 
@@ -462,29 +468,65 @@ PartSys.prototype.initSpringPair = function(count)
     
     // Create and fill VBO with state s1 contents:
 
-    // i = particle number; j = array index for i-th particle
+    // make a tetrahedron spring system:
+    // center of tetrahedron base
+    var c_x = 0.0;
+    var c_y = 5.0;
+    var c_z = 5.0;
+
+    // 1st particle
     var j = 0;
+    this.s1[j + Properties.position.x] = c_x + 0.0; 
+    this.s1[j + Properties.position.y] = c_y + 1.0;  
+    this.s1[j + Properties.position.z] = c_z + 0.5;
+    this.s1[j + Properties.position.w] = 1.0;
+    // 2nd particle
+    j+= Properties.maxVariables;
+    this.s1[j + Properties.position.x] = c_x + 1.0; 
+    this.s1[j + Properties.position.y] = c_y + -0.7;  
+    this.s1[j + Properties.position.z] = c_z + 0.2;
+    this.s1[j + Properties.position.w] = 1.0;
+    // 3rd particle
+    j+= Properties.maxVariables;
+    this.s1[j + Properties.position.x] = c_x + -1.0; 
+    this.s1[j + Properties.position.y] = c_y + -0.7;  
+    this.s1[j + Properties.position.z] = c_z + 0.9;
+    this.s1[j + Properties.position.w] = 1.0;
+    // 4th particle
+    j+= Properties.maxVariables;
+    this.s1[j + Properties.position.x] = c_x + 0.0; 
+    this.s1[j + Properties.position.y] = c_y + 0.0;  
+    this.s1[j + Properties.position.z] = c_z + 1.7;
+    this.s1[j + Properties.position.w] = 1.0;
+
+    this.indices = new Uint16Array ([
+        // spring connection between the particles
+        0, 1,
+        0, 2,
+        0, 3,
+        1, 2,
+        1, 3,
+        2, 3,
+    ]);
+    this.indexCount = 12;
+
+    // i = particle number; j = array index for i-th particle
+    j = 0;
     for (var i = 0; i < this.partCount; i += 1, j+= Properties.maxVariables)
     {
-        // hardcoded positions for now
-        this.s1[j + Properties.position.x] = Math.pow(-1, i) * 2.0; 
-        this.s1[j + Properties.position.y] = 2.0;  
-        this.s1[j + Properties.position.z] = 0.0;
-        this.s1[j + Properties.position.w] = 1.0;
-
         // spring center position - hardcoded for now
         this.s1[j + Properties.springCenter.x] = 0.0;//1.0 * i + Math.pow(-1, i) * 0.5; 
         this.s1[j + Properties.springCenter.y] = 2.0;  
         this.s1[j + Properties.springCenter.z] = 0.0;
 
         // harcoded velocities for now
-        this.s1[j + Properties.velocity.x] =  Math.pow(-1, i) * 0.5;
+        this.s1[j + Properties.velocity.x] =  0.0;//Math.pow(-1, i) * 0.5;
         this.s1[j + Properties.velocity.y] =  0.0;
         this.s1[j + Properties.velocity.z] =  0.0;
 
         // mass, in kg.
         this.s1[j + Properties.mass] =  1.0;
-        // on-screen diameter, in pixels
+        // on-screen diameter, in pixels (not used as of now for spring system)
         this.s1[j + Properties.diameter] =  2.0 + 10*Math.random();
         this.s1[j + Properties.renderMode] = 0.0;
         this.s1[j + Properties.age] = 30 + 100*Math.random();
@@ -507,12 +549,23 @@ PartSys.prototype.initSpringPair = function(count)
         console.log('PartSys.init() Failed to create the VBO object in the GPU');
         return -1;
     }
-
     // Bind buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, this.vboID);
-
     // Write data
     gl.bufferData(gl.ARRAY_BUFFER, this.s1, gl.DYNAMIC_DRAW);
+
+    // Index Buffer (will be used to draw the "spring" between particles)
+    // Create Buffer, Bind to Index Buffer, Write Data
+    this.indexBuffer = gl.createBuffer();
+    if (!this.indexBuffer)
+    {
+        console.log('Failed to create the index buffer object');
+        return -1;
+    }
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.indices, gl.STATIC_DRAW);
+
+
 
     // Tell GLSL to fill the 'a_Position' attribute variable for each shader
 
@@ -791,7 +844,19 @@ PartSys.prototype.render = function(s)
     gl.drawArrays(gl.POINTS, nFirst, vertexCount);
     if (s==2)
     {
-        gl.drawArrays(gl.LINES, nFirst, vertexCount);
+        // Indices ->
+
+        // Tell WebGL which indices to use to index the vertices
+        // will be null if no index buffer exists
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+
+        //gl.drawArrays(gl.LINES, nFirst, vertexCount);
+        
+        // data type for indices
+        const type = gl.UNSIGNED_SHORT;
+        const offset = 0;
+        gl.drawElements(gl.LINES, this.indexCount, type, offset);
+        
     }
 }
 
@@ -961,7 +1026,7 @@ PartSys.prototype.setModelViewMatrixSpringPair = function()
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(0.0, 10.0, 1.0);
+    modelViewMatrix.translate(0.0, 10.0, 0.0);
     // scale cube
     var s = 2.0;
     modelViewMatrix.scale(s, s, s);
@@ -984,7 +1049,7 @@ PartSys.prototype.setModelViewMatrixBouncy = function()
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(0.0, 5.0, 1.0);
+    modelViewMatrix.translate(0.0, 5.0, 0.0);
     // scale cube
     var s = 2.0;
     modelViewMatrix.scale(s, s, s);
