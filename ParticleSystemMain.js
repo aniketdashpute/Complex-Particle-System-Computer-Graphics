@@ -39,15 +39,25 @@ function main()
     // Init Camera
     initCameraParams();
 
-    // Our first global particle system object; contains 'state variables' s1,s2;
+    // Our first global particle system object
+    // contains 'state variables' s1,s2;
     // for code, see PartSys.js
     // create our first particle-system object
+    // Bouncy Balls
     g_partA = new PartSys();
 
+    // create second particle-system object
+    // Spring System
+    g_partB = new PartSys();
+
     // Initialize Particle systems:
+    
     // create a 2D bouncy-ball system where
     // 2 particles bounce within -0.9 <=x,y<0.9 and z=0.
-    g_partA.initBouncy2D(200);            
+    g_partA.initBouncy2D(200);
+
+    // create a 2 particle spring system
+    g_partB.initSpringPair(2);
 
     // recursively call tick() using requestAnimationFrame
     var tick = function ()
@@ -595,7 +605,7 @@ function initBuffersGround(gl)
     };
 }
 
-function drawPartSys()
+function drawPartSys1()
 {
     g_isClear = 0;
     if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
@@ -604,7 +614,7 @@ function drawPartSys()
     setProjectionMatrix(gl, programInfo);
 
     // specify the modelView matrix for transforming our particle system
-    g_partA.setModelViewMatrixPartSys();
+    g_partA.setModelViewMatrixBouncy();
     // find current net force on each particle
     g_partA.applyForces(g_partA.s1, g_partA.forceList);
     // find time-derivative s1dot from s1;
@@ -614,9 +624,33 @@ function drawPartSys()
     // Apply all constraints, s2 is ready!
     g_partA.doConstraints();
     // transfer current state to VBO, set uniforms, draw it!
-    g_partA.render();
+    g_partA.render(0);
     // Make s2 the new current state s1.s
     g_partA.swap();
+}
+
+function drawPartSys2()
+{
+    g_isClear = 0;
+    if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // specify the perspective projection required for viewing
+    setProjectionMatrix(gl, programInfo);
+
+    // specify the modelView matrix for transforming our particle system
+    g_partB.setModelViewMatrixSpringPair();
+    // find current net force on each particle
+    g_partB.applyForces(g_partB.s1, g_partB.forceList);
+    // find time-derivative s1dot from s1;
+    g_partB.dotFinder(g_partB.s1dot, g_partB.s1);
+    // find s2 from s1 & related states.
+    g_partB.solver();
+    // Apply all constraints, s2 is ready!
+    g_partB.doConstraints();
+    // transfer current state to VBO, set uniforms, draw it!
+    g_partB.render(2);
+    // Make s2 the new current state s1.s
+    g_partB.swap();
 }
 
 function drawCube(gl, buffers, programInfo)
@@ -678,8 +712,11 @@ function drawScene(gl, programInfo, buffersCube, buffersGround)
     // Without clearing screen, draw ground now
     drawGround(gl, buffersGround, programInfo);
 
-    // draw the first particle system
-    drawPartSys();
+    // draw the first particle system - Bouncy Balls
+    drawPartSys1();
+
+    // draw the second particle system - Spring system
+    drawPartSys2();
 
 }
 
@@ -747,9 +784,11 @@ function myKeyDown(kev)
                 {
                     g_partA.roundRand();  // make a spherical random var.
                     if(  g_partA.s2[j + Properties.velocity.x] > 0.0) // ADD to positive velocity, and 
-                        g_partA.s2[j + Properties.velocity.x] += 1.7 + 0.4*g_partA.randX*g_partA.INIT_VEL;
+                        g_partA.s2[j + Properties.position.x] = 0.4;
+                        // g_partA.s2[j + Properties.velocity.x] += 1.7 + 0.4*g_partA.randX*g_partA.INIT_VEL;
                                                             // SUBTRACT from negative velocity: 
-                    else g_partA.s2[j + Properties.velocity.x] -= 1.7 + 0.4*g_partA.randX*g_partA.INIT_VEL; 
+                    else g_partA.s2[j + Properties.position.x] = -0.4;
+                    // else g_partA.s2[j + Properties.velocity.x] -= 1.7 + 0.4*g_partA.randX*g_partA.INIT_VEL; 
         
                     if(  g_partA.s2[j + Properties.velocity.y] > 0.0) 
                         g_partA.s2[j + Properties.velocity.y] += 1.7 + 0.4*g_partA.randY*g_partA.INIT_VEL; 
@@ -760,9 +799,24 @@ function myKeyDown(kev)
                     else g_partA.s2[j + Properties.velocity.z] -= 1.7 + 0.4*g_partA.randZ*g_partA.INIT_VEL;
                     }
             }
+            break;
+        case "KeyT":
+            console.log("T key (Spring Pull)");
+            if (true)
+            {
+                g_partB.runMode = 3;  // RUN!
+                m = 0;
+                var j = m * Properties.maxVariables;
+                console.log("1st: "+g_partB.s2[j + Properties.position.x]);
+                g_partB.s2[j + Properties.position.x] = 0.05;
+                console.log("1st CHANGED: "+g_partB.s2[j + Properties.position.x]);
 
-
-
+                m = 1;
+                j = m * Properties.maxVariables;
+                console.log("2nd: "+g_partB.s2[j + Properties.position.x]);
+                g_partB.s2[j + Properties.position.x] = -0.05;
+                console.log("2nd CHANGED: "+g_partB.s2[j + Properties.position.x]);
+            }
 		default:
 			console.log("UNUSED key:", kev.keyCode);
 			break;

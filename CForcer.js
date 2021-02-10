@@ -84,18 +84,18 @@ function CForcer()
 
     // Single Spring variables:
     // Spring endpoints connect particle # e1 to # e2
-    this.e1 = 0;
     // (state vars hold particles 0,1,2,3,...partCount)
+    this.e1 = 0;
     this.e2 = 1;
     // Spring constant: force = stretchDistance*K_s
-    this.K_spring;
+    this.K_spring = 0.5;
     // Spring damping: (friction within the spring);
     // force = -relVel*K_damp; 'relative velocity' is
     // how fast the spring length is changing, and
     // applied along the direction of the spring.
-    this.K_springDamp;
+    this.K_springDamp = 0.5;
     // the zero-force length of this spring.      
-    this.K_restLength;
+    this.K_restLength = 2.0;
 }
 
 CForcer.prototype.printMe = function(opt_src)
