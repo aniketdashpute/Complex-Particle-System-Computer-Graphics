@@ -1659,7 +1659,7 @@ PartSys.prototype.setModelViewMatrixBouncy = function()
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(0.0, 5.0, 0.0);
+    modelViewMatrix.translate(5.0, 5.0, 0.0);
     // scale cube
     var s = 2.0;
     modelViewMatrix.scale(s, s, s);
