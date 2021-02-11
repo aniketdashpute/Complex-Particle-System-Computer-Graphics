@@ -353,7 +353,7 @@ PartSys.prototype.initSpringPair = function(count)
             // force = -relVel*K_damp; 'relative velocity' is
             // how fast the spring length is changing, and
             // applied along the direction of the spring.
-            fTmp.K_springDamp = 0.6;
+            fTmp.K_springDamp = 0.1;
             // the zero-force length of this spring.      
             fTmp.K_restLength = 2.0;
             // (and IGNORE all other Cforcer members...)
@@ -593,6 +593,426 @@ PartSys.prototype.initSpringPair = function(count)
     gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
 }
 
+PartSys.prototype.initReevesFire = function(count)
+{
+    console.log('PartSys.ReevesFire() initializing...');
+
+    this.name = "Reeves Fire Particle System";
+
+    // Create all state-variables
+    this.partCount = count;
+    this.s1 =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.s2 =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.s1dot = new Float32Array(this.partCount * Properties.maxVariables);  
+    // Float32Array objects are zero-filled by default
+
+    // use fountain like effect for Reeves Fire
+    this.isFountain = true;
+
+    // Create force-causing objects:
+    var fTmp = new CForcer();
+
+    // earth gravity for all particles:
+    fTmp.forceType = Forces.EarthGravity;
+    // set it to affect ALL particles
+    fTmp.targFirst = 0;
+    // (negative value means ALL particles)
+    fTmp.partCount = -1;
+    // (and IGNORE all other Cforcer members...)
+    // append this to the forceList array of force-causing objects
+    this.forceList.push(fTmp);
+
+    // drag for all particles:
+    fTmp = new CForcer();
+    // Viscous Drag
+    fTmp.forceType = Forces.Drag;
+    // in Euler solver, scales velocity by 0.85
+    fTmp.Kdrag = 0.15;
+    // apply it to ALL particles
+    fTmp.targFirst = 0;
+    // negative value means ALL particles
+    fTmp.partCount = -1;
+    // (and IGNORE all other Cforcer members...)
+    // append this to the forceList array of force-causing objects
+    this.forceList.push(fTmp);
+
+    // Report:
+    console.log("PartSys.initBouncy2D() created PartSys.forceList[] array of ");
+    console.log("\t\t", this.forceList.length, "CForcer objects:");
+    for(i=0; i<this.forceList.length; i++)
+    {
+        console.log("CForceList[",i,"]");
+        this.forceList[i].printMe();
+    }
+
+
+
+
+    // Create constraint-causing objects:
+    var cTmp = new CLimit();
+    // set how particles 'bounce' from its surface
+    cTmp.hitType = HitType.BounceVelocityReversal;
+    // confine particles inside axis-aligned rectangular volume
+    cTmp.limitType = LimitType.Volume;
+    // applies to ALL particles; starting at 0
+    cTmp.targFirst = 0;
+    // through all the rest of them
+    cTmp.partCount = -1;
+    // box extent:  +/- 1.0 box at origin
+    cTmp.xMin = 0.0; cTmp.xMax = 20.0;
+    cTmp.yMin = 0.0; cTmp.yMax = 20.0;
+    cTmp.zMin = 0.0; cTmp.zMax = 20.0;
+    // bouncyness: coeff. of restitution.
+    cTmp.Kresti = 1.0;
+    // (and IGNORE all other CLimit members...)
+    // append this to array of constraint-causing objects
+    this.limitList.push(cTmp);
+
+    // Report:
+    console.log("PartSys.initBouncy2D() created PartSys.limitList[] array of ");
+    console.log("\t\t", this.limitList.length, "CLimit objects.");
+    for(i=0; i<this.limitList.length; i++)
+    {
+        console.log("CLimitList[",i,"]");
+        this.limitList[i].printMe();
+    }
+
+
+
+
+    // initial velocity in meters/sec.
+    // adjust by ++Start, --Start buttons. Original value 
+    // was 0.15 meters per timestep; multiply by 60 to get meters per second.
+    this.INIT_VEL =  0.15 * 60.0;
+
+    // units-free air-drag (scales velocity); adjust by d/D keys
+    this.drag = 0.985;
+    // gravity's acceleration(meter/sec^2); adjust by g/G keys
+    this.grav = 9.832;
+    // units-free 'Coefficient of Restitution'
+    this.resti = 1.0;
+
+
+
+
+    // Initialize Particle System Controls:
+
+    // Master Control: 0=reset; 1= pause; 2=step; 3=run
+    this.runMode =  3;
+    // adjust by s/S keys
+    this.solvType = Solver.OldGood;
+    // floor-bounce constraint type:
+    // ==0 for velocity-reversal, as in all previous versions
+    // ==1 for Chapter 3's collision resolution method, which uses
+    // an 'impulse' to cancel any velocity boost caused by falling below the floor
+    this.bounceType = 1;
+
+
+
+    
+    // Create and fill VBO with state s1 contents:
+
+    // i = particle number; j = array index for i-th particle
+    var j = 0;
+    for (var i = 0; i < this.partCount; i += 1, j+= Properties.maxVariables)
+    {
+        // set this.randX,randY,randZ to random location in
+        // a 3D unit sphere centered at the origin
+        this.roundRand();
+        // all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
+        // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
+        this.s1[j + Properties.position.x] = 0.8;// + 0.1*this.randX; 
+        this.s1[j + Properties.position.y] = 0.8;// + 0.1*this.randY;  
+        this.s1[j + Properties.position.z] = 0.8;// + 0.1*this.randZ;
+        this.s1[j + Properties.position.w] =  1.0;
+
+        // Now choose random initial velocities too:
+        this.roundRand();
+        this.s1[j + Properties.velocity.x] =  this.INIT_VEL*(0.0 + 0.2*this.randX);
+        this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(0.0 + 0.2*this.randY);
+        this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.4 + 0.2*this.randZ);
+
+        // mass, in kg.
+        this.s1[j + Properties.mass] =  1.0;
+        // on-screen diameter, in pixels
+        this.s1[j + Properties.diameter] =  2.0 + 10*Math.random();
+        this.s1[j + Properties.renderMode] = 0.0;
+        this.s1[j + Properties.age] = 20 + 8*Math.random();
+    }
+    // COPY contents of state-vector s1 to s2
+    this.s2.set(this.s1);
+
+
+
+
+    // 'float' size, in bytes.
+    this.FSIZE = this.s1.BYTES_PER_ELEMENT;
+
+    // Create, Bind, Write
+
+    // Create a vertex buffer object (VBO) in the graphics hardware: get its ID# 
+    this.vboID = gl.createBuffer();
+    if (!this.vboID)
+    {
+        console.log('PartSys.init() Failed to create the VBO object in the GPU');
+        return -1;
+    }
+
+    // Bind buffer
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vboID);
+
+    // Write data
+    gl.bufferData(gl.ARRAY_BUFFER, this.s1, gl.DYNAMIC_DRAW);
+
+    // Tell GLSL to fill the 'a_Position' attribute variable for each shader
+
+    // # of values in this attrib, ex: (x,y,z,w) => 4
+    var nAttributes = 4;
+    // data type (usually gl.FLOAT)
+    var dataType = gl.FLOAT;
+    // use integer normalizing? (usually false)
+    var bNormalize = false;
+    // Stride: #bytes from 1st stored value to next 
+    var stride = Properties.maxVariables * this.FSIZE;
+    // Offiset; #bytes from start of buffer to the 1st attrib value to be used
+    var offset = Properties.position.x * this.FSIZE;
+
+    // specify the layout of the vertex buffer
+    gl.vertexAttribPointer(
+        programInfo.attribLocations.vertexPosition, 
+        nAttributes,
+        dataType, 
+        bNormalize,
+        stride,
+        offset);                                       
+                                
+    // Enable the assignment to a_Position variable
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+}
+
+PartSys.prototype.initTornado = function(count)
+{
+    console.log('PartSys.Tornado() initializing...');
+
+    this.name = "Tornado Particle System";
+
+    // Create all state-variables
+    this.partCount = count;
+    this.s1 =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.s2 =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.s1dot = new Float32Array(this.partCount * Properties.maxVariables);  
+    // Float32Array objects are zero-filled by default
+
+    // use fountain like effect for Tornado (vanish particles after some time)
+    this.isTornado = false;
+    // this.isFountain = false;
+
+
+    // Create force-causing objects:
+    var fTmp = new CForcer();
+
+    // earth gravity for all particles:
+    fTmp.forceType = Forces.EarthGravity;
+    // set it to affect ALL particles
+    fTmp.targFirst = 0;
+    // (negative value means ALL particles)
+    fTmp.partCount = -1;
+    // (and IGNORE all other Cforcer members...)
+    // append this to the forceList array of force-causing objects
+    this.forceList.push(fTmp);
+
+    // drag for all particles:
+    fTmp = new CForcer();
+    // Viscous Drag
+    fTmp.forceType = Forces.Drag;
+    // in Euler solver, scales velocity by 0.85
+    fTmp.Kdrag = 0.15;
+    // apply it to ALL particles
+    fTmp.targFirst = 0;
+    // negative value means ALL particles
+    fTmp.partCount = -1;
+    // (and IGNORE all other Cforcer members...)
+    // append this to the forceList array of force-causing objects
+    this.forceList.push(fTmp);
+
+    // drag for all particles:
+    fTmp = new CForcer();
+    // Viscous Drag
+    fTmp.forceType = Forces.Tornado;
+    // in Euler solver, scales velocity by 0.85
+    fTmp.Kdrag = 0.15;
+    // apply it to ALL particles
+    fTmp.targFirst = 0;
+    // negative value means ALL particles
+    fTmp.partCount = -1;
+    // specify the tornado center
+    fTmp.TornadoCenter = new Vector4([0,10,0,1]);
+    // range of the tornado
+    tornadoRadius = 5.0;
+    // height upto which Tornado will work
+    tornadoHeight = 10.0;
+    // (and IGNORE all other Cforcer members...)
+    // append this to the forceList array of force-causing objects
+
+    this.forceList.push(fTmp);
+
+    // Report:
+    console.log("PartSys.initBouncy2D() created PartSys.forceList[] array of ");
+    console.log("\t\t", this.forceList.length, "CForcer objects:");
+    for(i=0; i<this.forceList.length; i++)
+    {
+        console.log("CForceList[",i,"]");
+        this.forceList[i].printMe();
+    }
+
+
+
+
+    // Create constraint-causing objects:
+    var cTmp = new CLimit();
+    // set how particles 'bounce' from its surface
+    cTmp.hitType = -1;//HitType.BounceVelocityReversal;
+    // confine particles inside axis-aligned rectangular volume
+    cTmp.limitType = LimitType.Volume;
+    // applies to ALL particles; starting at 0
+    cTmp.targFirst = 0;
+    // through all the rest of them
+    cTmp.partCount = -1;
+    // box extent:  +/- 1.0 box at origin
+    cTmp.xMin = -10.0; cTmp.xMax = 10.0;
+    cTmp.yMin = -10.0; cTmp.yMax = 10.0;
+    cTmp.zMin = 0.0; cTmp.zMax = 15.0;
+    this.xMin = -10.0; this.xMax = 10.0;
+    this.yMin = -10.0; this.yMax = 10.0;
+    this.zMin = 0.0; this.zMax = 15.0;
+    // bouncyness: coeff. of restitution.
+    cTmp.Kresti = 1.0;
+    // (and IGNORE all other CLimit members...)
+    // append this to array of constraint-causing objects
+    this.limitList.push(cTmp);
+
+    // Report:
+    console.log("PartSys.initBouncy2D() created PartSys.limitList[] array of ");
+    console.log("\t\t", this.limitList.length, "CLimit objects.");
+    for(i=0; i<this.limitList.length; i++)
+    {
+        console.log("CLimitList[",i,"]");
+        this.limitList[i].printMe();
+    }
+
+
+
+
+    // initial velocity in meters/sec.
+    // adjust by ++Start, --Start buttons. Original value 
+    // was 0.15 meters per timestep; multiply by 60 to get meters per second.
+    this.INIT_VEL =  0.15 * 60.0;
+
+    // units-free air-drag (scales velocity); adjust by d/D keys
+    this.drag = 0.985;
+    // gravity's acceleration(meter/sec^2); adjust by g/G keys
+    this.grav = 9.832;
+    // units-free 'Coefficient of Restitution'
+    this.resti = 1.0;
+
+
+
+
+    // Initialize Particle System Controls:
+
+    // Master Control: 0=reset; 1= pause; 2=step; 3=run
+    this.runMode =  3;
+    // adjust by s/S keys
+    this.solvType = Solver.Euler;
+    // floor-bounce constraint type:
+    // ==0 for velocity-reversal, as in all previous versions
+    // ==1 for Chapter 3's collision resolution method, which uses
+    // an 'impulse' to cancel any velocity boost caused by falling below the floor
+    this.bounceType = 0;
+
+
+
+    
+    // Create and fill VBO with state s1 contents:
+
+    // i = particle number; j = array index for i-th particle
+    var j = 0;
+    for (var i = 0; i < this.partCount; i += 1, j+= Properties.maxVariables)
+    {
+        // set this.randX,randY,randZ to random location in
+        // a 3D unit sphere centered at the origin
+        this.roundRand();
+        // all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
+        // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
+        this.s1[j + Properties.position.z] = 1.0 + 1.5*this.randZ;
+        this.s1[j + Properties.position.x] = 0.8 + Properties.position.z*this.randX; 
+        this.s1[j + Properties.position.y] = 0.8 + Properties.position.z*this.randY;  
+        this.s1[j + Properties.position.w] =  1.0;
+
+        // Now choose random initial velocities too:
+        this.roundRand();
+        this.s1[j + Properties.velocity.x] =  0;//this.INIT_VEL*(0.2*this.randX);
+        this.s1[j + Properties.velocity.y] =  0;//this.INIT_VEL*(0.2*this.randY);
+        this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.2);// + 0.2*this.randZ);
+
+        // mass, in kg.
+        this.s1[j + Properties.mass] =  1.0;
+        // on-screen diameter, in pixels
+        this.s1[j + Properties.diameter] =  2.0 + 10*Math.random();
+        this.s1[j + Properties.renderMode] = 0.0;
+        this.s1[j + Properties.age] = 50 + 50*Math.random();
+    }
+    // COPY contents of state-vector s1 to s2
+    this.s2.set(this.s1);
+
+
+
+
+    // 'float' size, in bytes.
+    this.FSIZE = this.s1.BYTES_PER_ELEMENT;
+
+    // Create, Bind, Write
+
+    // Create a vertex buffer object (VBO) in the graphics hardware: get its ID# 
+    this.vboID = gl.createBuffer();
+    if (!this.vboID)
+    {
+        console.log('PartSys.init() Failed to create the VBO object in the GPU');
+        return -1;
+    }
+
+    // Bind buffer
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vboID);
+
+    // Write data
+    gl.bufferData(gl.ARRAY_BUFFER, this.s1, gl.DYNAMIC_DRAW);
+
+    // Tell GLSL to fill the 'a_Position' attribute variable for each shader
+
+    // # of values in this attrib, ex: (x,y,z,w) => 4
+    var nAttributes = 4;
+    // data type (usually gl.FLOAT)
+    var dataType = gl.FLOAT;
+    // use integer normalizing? (usually false)
+    var bNormalize = false;
+    // Stride: #bytes from 1st stored value to next 
+    var stride = Properties.maxVariables * this.FSIZE;
+    // Offiset; #bytes from start of buffer to the 1st attrib value to be used
+    var offset = Properties.position.x * this.FSIZE;
+
+    // specify the layout of the vertex buffer
+    gl.vertexAttribPointer(
+        programInfo.attribLocations.vertexPosition, 
+        nAttributes,
+        dataType, 
+        bNormalize,
+        stride,
+        offset);                                       
+                                
+    // Enable the assignment to a_Position variable
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+}
+
 PartSys.prototype.applyForces = function(s, fList)
 {
     // Clear the force-accumulator vector for each particle in state-vector 's', 
@@ -655,7 +1075,7 @@ PartSys.prototype.applyForces = function(s, fList)
             if(tmp < mmax) mmax = tmp;
             else console.log("\n\n!!PartSys.applyForces() index error!!\n\n");
         }
-        //console.log("m:",m,"mmax:",mmax);
+        // console.log("m:",m,"mmax:",mmax);
         
         // m and mmax are now correctly initialized; use them!  
 
@@ -746,6 +1166,8 @@ PartSys.prototype.applyForces = function(s, fList)
                 
                 var deltaLen = fList[k].K_restLength - del_len;
                 // force from spring = K_spring * (length change)
+                // also apply spring damping
+
                 s[j1 + Properties.force.x] += (fList[k].K_spring * (deltaLen * del_x)
                 - (fList[k].K_springDamp * vel_spring * del_x));
                 s[j1 + Properties.force.y] += (fList[k].K_spring * (deltaLen * del_y) 
@@ -769,6 +1191,65 @@ PartSys.prototype.applyForces = function(s, fList)
                 console.log("PartSys.applyForces(), fList[",k,"].forceType:", 
                                         fList[k].forceType, "NOT YET IMPLEMENTED!!");
                 break;
+            case Forces.Tornado:
+                // console.log("Tornado.applyForces() called");
+                var j = m*Properties.maxVariables;  // state var array index for particle # m
+                for(; m<mmax; m++, j+=Properties.maxVariables)
+                {
+                    //console.log("Calculating force for particle number: "+m);
+
+                    // first calculate the in vector (tangential vector for ith particle)
+                    // this vector will be parallel to ground plane
+
+                    var fLx = s[j + Properties.position.x] - fList[k].TornadoCenter.elements[0];
+                    var fLy = s[j + Properties.position.y] - fList[k].TornadoCenter.elements[1];
+                    var fLz = s[j + Properties.position.z] - fList[k].TornadoCenter.elements[2];
+                  
+                    // Normalize f.
+                    var rlf = 1 / Math.sqrt(fLx*fLx + fLy*fLy + fLz*fLz);
+                    var fx = fLx/rlf;
+                    var fy = fLy/rlf;
+                    var fz = fLz/rlf;
+                  
+                    // Calculate cross product of f and up.
+                    // This will give the direction of "in" vector for the particle
+                    // (tangential vector for ith particle)
+                    var inX = -(fy * upZ - fz * upY);
+                    var inY = -(fz * upX - fx * upZ);
+                    var inZ = -(fx * upY - fy * upX);
+
+                    // Calculate cross product of in and f -> get the new "orthogonal"
+                    // force field direction vector
+                    var dirX = -(inY * fz - inZ * fy);
+                    var dirY = -(inZ * fx - inX * fz);
+                    var dirZ = -(inX * fy - inY * fx);
+                
+                    // distance from center line
+                    var rad = Math.sqrt(fLx*fLx + fLy*fLy);
+                    var hGround = Math.abs(fLz);
+
+                    // calculate Force magnitude based on radius (distance from center line)
+                    // and height (from ground)
+                    if (rad >= fList[k].tornadoRadius)
+                    {
+                        // destroy particle
+                        // (init parameters to use as a new particle)
+                    }
+                    var Fmag = (2- 2*Math.log(rad + 1) + (hGround/fList[k].tornadoHeight) * 2);
+                    // console.log("Fx: " + Fmag * dirX);
+                    // console.log("Fy: " + Fmag * dirY);
+                    // console.log("Fz: " + Fmag * dirZ);
+                    s[j + Properties.force.x] += Fmag * dirX; 
+                    s[j + Properties.force.y] += Fmag * dirY;
+                    s[j + Properties.force.z] += Fmag * dirZ;
+
+                    // add some radial force
+                    // s[j + Properties.force.x] -= 10*Fmag * fx; 
+                    // s[j + Properties.force.y] -= 10*Fmag * fy;
+                    
+                }
+                break;
+                
             default:
                 console.log("!!!ApplyForces() fList[",k,"] invalid forceType:", fList[k].forceType);
                 break;
@@ -933,8 +1414,8 @@ PartSys.prototype.solver = function()
 
 PartSys.prototype.doConstraints = function(limitList)
 {
-    console.log("LimitList length: ", limitList.length);
-    console.log("Particle System type: ", this.name);
+    // console.log("LimitList length: ", limitList.length);
+    // console.log("Particle System type: ", this.name);
 
     // for every CLimit in limitList array,
     for(var k = 0; k < limitList.length; k++)
@@ -946,7 +1427,7 @@ PartSys.prototype.doConstraints = function(limitList)
                 console.log("No limit type applied");
                 break;
             case LimitType.Volume:
-                console.log("Volume Limit applied");
+                // console.log("Volume Limit applied");
                 limitList[k].enforceLimitVolume(this.bounceType, this.partCount, this.drag, this.s1, this.s2);
                 break;
             case LimitType.Ball:
@@ -962,7 +1443,7 @@ PartSys.prototype.doConstraints = function(limitList)
             case LimitType.MatrixVolume:
                 break;
             default:
-                console.log("Use volume limit as default");
+                console.log("default option selected");
                 break;
         }
     }
@@ -985,6 +1466,7 @@ PartSys.prototype.doConstraints = function(limitList)
         {
             // decrement lifetime
             this.s2[j + Properties.age] -= 1;
+            this.s2[j + Properties.diameter] -= 0.05;
 
             // End of life: RESET this particle!    
             if(this.s2[j + Properties.age] <= 0) 
@@ -993,26 +1475,82 @@ PartSys.prototype.doConstraints = function(limitList)
                                         // a 3D unit sphere centered at the origin.
                 //all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
                 // set random positions in a 0.1-radius ball centered at (-0.8,-0.8,-0.8)
-                this.s2[j + Properties.position.x] = -0.0 + 0.2*this.randX; 
-                this.s2[j + Properties.position.y] = -0.4 + 0.2*this.randY;  
-                this.s2[j + Properties.position.z] = -0.0 + 0.2*this.randZ;
+                this.s2[j + Properties.position.x] = 0.8; // + 0.2*this.randX; 
+                this.s2[j + Properties.position.y] = 0.8; // + 0.2*this.randY;  
+                this.s2[j + Properties.position.z] = 0.8; // + 0.2*this.randZ;
                 // position 'w' coordinate;
                 this.s2[j + Properties.position.w] =  1.0;
 
                 // Now choose random initial velocities too:
                 this.roundRand();
                 this.s2[j + Properties.velocity.x] =  this.INIT_VEL*(0.0 + 0.2*this.randX);
-                this.s2[j + Properties.velocity.y] =  this.INIT_VEL*(0.5 + 0.2*this.randY);
-                this.s2[j + Properties.velocity.z] =  this.INIT_VEL*(0.0 + 0.2*this.randZ);
+                this.s2[j + Properties.velocity.y] =  this.INIT_VEL*(0.0 + 0.2*this.randY);
+                this.s2[j + Properties.velocity.z] =  this.INIT_VEL*(0.4 + 0.2*this.randZ);
                 // mass, in kg.
                 this.s2[j + Properties.mass] =  1.0;
                 // on-screen diameter, in pixels
-                this.s2[j + Properties.diameter] =  2.0 + 10*Math.random();
+                this.s2[j + Properties.diameter] =  2.0 + 1*Math.random();
                 this.s2[j + Properties.renderMode] = 0.0;
-                this.s2[j + Properties.age] = 30 + 100*Math.random();
+                this.s2[j + Properties.age] = 20 + 8*Math.random();
             }
         }
     }
+
+
+
+    /*// Tornado:
+    // When particle age falls to zero, re-initialize
+    // to re-launch from a randomized location with
+    // a randomized velocity and randomized age.
+    // The randomizations are done in some specific manner though
+    if(this.isTornado == true)
+    {
+        // i==particle number; j==array index for i-th particle
+        var j = 0;
+
+        for(var i = 0; i < this.partCount; i += 1, j+= Properties.maxVariables)
+        {
+            // Particle is outside the tornado operation area
+            // destory and create a new one inside the range  
+            bIsOutside = (this.s1[Properties.position.x] < (this.xMin+20)) ||
+            (this.s1[Properties.position.x] > (this.xMax-20)) ||
+            (this.s1[Properties.position.y] < (this.yMin+20)) ||
+            (this.s1[Properties.position.y] > (this.yMax-20)) ||
+            (this.s1[Properties.position.z] < (this.zMin+20)) ||
+            (this.s1[Properties.position.z] > (this.zMax-20));
+
+            console.log("isOutside? " + bIsOutside);
+            console.log("position.x: " + this.s1[Properties.position.x]);
+            console.log("position.y: " + this.s1[Properties.position.y]);
+            console.log("position.z: " + this.s1[Properties.position.z]);
+
+            if(bIsOutside) 
+            {
+                // set this.randX,randY,randZ to random location in
+                // a 3D unit sphere centered at the origin
+                this.roundRand();
+                // all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
+                // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
+                this.s1[j + Properties.position.z] = 2.0 + 1.5*this.randZ;
+                this.s1[j + Properties.position.x] = 0.8 + Properties.position.z*this.randX; 
+                this.s1[j + Properties.position.y] = 0.8 + Properties.position.z*this.randY;  
+                this.s1[j + Properties.position.w] =  1.0;
+
+                // Now choose random initial velocities too:
+                this.roundRand();
+                this.s1[j + Properties.velocity.x] =  0;//this.INIT_VEL*(0.2*this.randX);
+                this.s1[j + Properties.velocity.y] =  0;//this.INIT_VEL*(0.2*this.randY);
+                this.s1[j + Properties.velocity.z] =  0;//this.INIT_VEL*(0.2);// + 0.2*this.randZ);
+
+                // mass, in kg.
+                this.s1[j + Properties.mass] =  1.0;
+                // on-screen diameter, in pixels
+                this.s1[j + Properties.diameter] =  2.0 + 10*Math.random();
+                this.s1[j + Properties.renderMode] = 0.0;
+                this.s1[j + Properties.age] = 50 + 8*Math.random();
+            }
+        }
+    }*/
 }
 
 PartSys.prototype.swap = function()
@@ -1039,6 +1577,52 @@ PartSys.prototype.roundRand = function()
     }
     // is x,y,z outside sphere? try again!
     while (this.randX*this.randX + this.randY*this.randY + this.randZ*this.randZ >= 1.0);
+}
+
+PartSys.prototype.setModelViewMatrixTornado = function()
+{
+    // create and set the model view matrix
+
+    // our viewing angle is such that the screen is x-z plane
+    // and inside screen is +y-axis
+
+    var modelViewMatrix = new Matrix4();
+    
+    modelViewMatrix.setIdentity();
+    // translate cube
+    modelViewMatrix.translate(0.0, 10.0, 0.0);
+    // scale cube
+    var s = 2.0;
+    modelViewMatrix.scale(s, s, s);
+
+    // Pass our current matrix to the vertex shaders:
+	gl.uniformMatrix4fv(
+        programInfo.uniformLocations.modelViewMatrix,
+        false,
+        modelViewMatrix.elements);
+}
+
+PartSys.prototype.setModelViewMatrixReevesFire = function()
+{
+    // create and set the model view matrix
+
+    // our viewing angle is such that the screen is x-z plane
+    // and inside screen is +y-axis
+
+    var modelViewMatrix = new Matrix4();
+    
+    modelViewMatrix.setIdentity();
+    // translate cube
+    modelViewMatrix.translate(-5.0, 10.0, 0.0);
+    // scale cube
+    var s = 2.0;
+    modelViewMatrix.scale(s, s, s);
+
+    // Pass our current matrix to the vertex shaders:
+	gl.uniformMatrix4fv(
+        programInfo.uniformLocations.modelViewMatrix,
+        false,
+        modelViewMatrix.elements);
 }
 
 PartSys.prototype.setModelViewMatrixSpringPair = function()

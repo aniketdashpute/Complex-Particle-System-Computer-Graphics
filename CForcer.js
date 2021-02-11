@@ -31,8 +31,10 @@ const Forces = {
     Springset: 8,
     // attract/repel by charge and inverse distance
     Charge: 9,
+    // tornado force:
+    Tornado: 10,
     // 'max' is always the LAST name in our list
-    MaxValue: 10,
+    MaxValue: 11,
 }
 
 function CForcer()
@@ -96,6 +98,12 @@ function CForcer()
     this.K_springDamp = 0.5;
     // the zero-force length of this spring.      
     this.K_restLength = 2.0;
+
+    // tornado center position
+    this.TornadoCenter = new Vector4([0,0,1,0]);
+
+    this.tornadoRadius = 5.0;
+    this.tornadoHeight = 20.0;
 }
 
 CForcer.prototype.printMe = function(opt_src)

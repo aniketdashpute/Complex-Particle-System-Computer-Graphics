@@ -50,6 +50,14 @@ function main()
     // Spring System
     g_partB = new PartSys();
 
+    // create thrid particle-system object
+    // Reeves Fire
+    g_partC = new PartSys();
+
+    // create fourth particle-system object
+    // Tornado
+    g_partD = new PartSys();
+
     // Initialize Particle systems:
     
     // create a 2D bouncy-ball system where
@@ -58,6 +66,12 @@ function main()
 
     // create a 2 particle spring system
     g_partB.initSpringPair(4);
+
+    // create a Reeves Fire
+    g_partC.initReevesFire(150);
+
+    // create Tornado
+    g_partD.initTornado(150);
 
     // recursively call tick() using requestAnimationFrame
     var tick = function ()
@@ -613,18 +627,18 @@ function initBuffersGround(gl)
     };
 }
 
-function drawPartSys1()
+function drawPartSysBouncy()
 {
     g_isClear = 0;
     if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
 
     // specify the perspective projection required for viewing
     setProjectionMatrix(gl, programInfo);
+    // specify the modelView matrix for transforming our particle system
+    g_partA.setModelViewMatrixBouncy();
 
     if (false == bIsPaused)
     {
-        // specify the modelView matrix for transforming our particle system
-        g_partA.setModelViewMatrixBouncy();
         // find current net force on each particle
         g_partA.applyForces(g_partA.s1, g_partA.forceList);
         // find time-derivative s1dot from s1;
@@ -645,18 +659,18 @@ function drawPartSys1()
     }
 }
 
-function drawPartSys2()
+function drawPartSysSpring()
 {
     g_isClear = 0;
     if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
 
     // specify the perspective projection required for viewing
     setProjectionMatrix(gl, programInfo);
+    // specify the modelView matrix for transforming our particle system
+    g_partB.setModelViewMatrixSpringPair();
 
     if (false == bIsPaused)
     {
-        // specify the modelView matrix for transforming our particle system
-        g_partB.setModelViewMatrixSpringPair();
         // find current net force on each particle
         g_partB.applyForces(g_partB.s1, g_partB.forceList);
         // find time-derivative s1dot from s1;
@@ -674,6 +688,70 @@ function drawPartSys2()
     {
         // transfer current state to VBO, set uniforms, draw it!
         g_partB.render(2);       
+    }
+}
+
+function drawPartSysReevesFire()
+{
+    g_isClear = 0;
+    if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // specify the perspective projection required for viewing
+    setProjectionMatrix(gl, programInfo);
+    // specify the modelView matrix for transforming our particle system
+    g_partC.setModelViewMatrixReevesFire();
+
+    if (false == bIsPaused)
+    {
+        // find current net force on each particle
+        g_partC.applyForces(g_partC.s1, g_partC.forceList);
+        // find time-derivative s1dot from s1;
+        g_partC.dotFinder(g_partC.s1dot, g_partC.s1);
+        // find s2 from s1 & related states.
+        g_partC.solver();
+        // Apply all constraints, s2 is ready!
+        g_partC.doConstraints(g_partC.limitList);
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partC.render(0);
+        // Make s2 the new current state s1.s
+        g_partC.swap();        
+    }
+    else
+    {
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partC.render(0);       
+    }
+}
+
+function drawPartSysTornado()
+{
+    g_isClear = 0;
+    if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // specify the perspective projection required for viewing
+    setProjectionMatrix(gl, programInfo);
+    // specify the modelView matrix for transforming our particle system
+    g_partD.setModelViewMatrixTornado();
+
+    if (false == bIsPaused)
+    {
+        // find current net force on each particle
+        g_partD.applyForces(g_partD.s1, g_partD.forceList);
+        // find time-derivative s1dot from s1;
+        g_partD.dotFinder(g_partD.s1dot, g_partD.s1);
+        // find s2 from s1 & related states.
+        g_partD.solver();
+        // Apply all constraints, s2 is ready!
+        g_partD.doConstraints(g_partD.limitList);
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partD.render(0);
+        // Make s2 the new current state s1.s
+        g_partD.swap();        
+    }
+    else
+    {
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partD.render(0);       
     }
 }
 
@@ -731,16 +809,23 @@ function drawScene(gl, programInfo, buffersCube, buffersGround)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Draw cube first
-    drawCube(gl, buffersCube, programInfo);
+    //drawCube(gl, buffersCube, programInfo);
 
     // Without clearing screen, draw ground now
     drawGround(gl, buffersGround, programInfo);
 
     // draw the first particle system - Bouncy Balls
-    drawPartSys1();
+    drawPartSysBouncy();
 
     // draw the second particle system - Spring system
-    drawPartSys2();
+    drawPartSysSpring();
+
+    // draw the third particle system - Reeves Fire
+    drawPartSysReevesFire();
+    
+    // draw the fourth particle system - Tornado
+    drawPartSysTornado();
+
 
 }
 

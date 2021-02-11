@@ -231,7 +231,6 @@ CLimit.prototype.enforceLimitVolume = function(bounceType, partCount, drag, sPre
     // ==0 for velocity-reversal, as in all previous versions
     // ==1 for Chapter 3's collision resolution method, which uses
 
-    console.log("inside enforceLimitVolume, bounceType = ", bounceType);
     K_resti = this.K_resti;
 
     if(bounceType==0)
@@ -457,9 +456,6 @@ CLimit.prototype.enforceLimitVolume = function(bounceType, partCount, drag, sPre
         console.log('?!?! unknown constraint: PartSys.bounceType==' + this.bounceType);
         return;
     }
-
-    console.log("s1.velocity: ", sPrev[Properties.velocity.x]);
-    console.log("s2.velocity: ", sNow[Properties.velocity.x]);
 
     return{
         s1: sPrev,
