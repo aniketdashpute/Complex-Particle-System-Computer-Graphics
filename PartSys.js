@@ -846,7 +846,7 @@ PartSys.prototype.initTornado = function(count)
     // negative value means ALL particles
     fTmp.partCount = -1;
     // specify the tornado center
-    fTmp.TornadoCenter = new Vector4([0,10,0,1]);
+    fTmp.TornadoCenter = new Vector4([0,0,0,1]);
     // range of the tornado
     tornadoRadius = 5.0;
     // height upto which Tornado will work
@@ -944,15 +944,15 @@ PartSys.prototype.initTornado = function(count)
         this.roundRand();
         // all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
         // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
-        this.s1[j + Properties.position.z] = 1.0 + 1.5*this.randZ;
-        this.s1[j + Properties.position.x] = 0.8 + Properties.position.z*this.randX; 
-        this.s1[j + Properties.position.y] = 0.8 + Properties.position.z*this.randY;  
+        this.s1[j + Properties.position.z] = 1.5 + 1.5*this.randZ;
+        this.s1[j + Properties.position.x] = 0.0 + this.s1[Properties.position.z]*this.randX; 
+        this.s1[j + Properties.position.y] = 0.0 + this.s1[Properties.position.z]*this.randY;  
         this.s1[j + Properties.position.w] =  1.0;
 
         // Now choose random initial velocities too:
         this.roundRand();
-        this.s1[j + Properties.velocity.x] =  0;//this.INIT_VEL*(0.2*this.randX);
-        this.s1[j + Properties.velocity.y] =  0;//this.INIT_VEL*(0.2*this.randY);
+        this.s1[j + Properties.velocity.x] =  this.INIT_VEL*(0.2*this.randX);
+        this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(0.2*this.randY);
         this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.2);// + 0.2*this.randZ);
 
         // mass, in kg.
@@ -1235,7 +1235,7 @@ PartSys.prototype.applyForces = function(s, fList)
                         // destroy particle
                         // (init parameters to use as a new particle)
                     }
-                    var Fmag = (2- 2*Math.log(rad + 1) + (hGround/fList[k].tornadoHeight) * 2);
+                    var Fmag = (5 - 2*Math.log(rad + 1) + (hGround/fList[k].tornadoHeight) * 0.2);
                     // console.log("Fx: " + Fmag * dirX);
                     // console.log("Fy: " + Fmag * dirY);
                     // console.log("Fz: " + Fmag * dirZ);
@@ -1244,8 +1244,8 @@ PartSys.prototype.applyForces = function(s, fList)
                     s[j + Properties.force.z] += Fmag * dirZ;
 
                     // add some radial force
-                    // s[j + Properties.force.x] -= 10*Fmag * fx; 
-                    // s[j + Properties.force.y] -= 10*Fmag * fy;
+                    s[j + Properties.force.x] -= 10*Fmag * fx;
+                    s[j + Properties.force.y] -= 10*Fmag * fy;
                     
                 }
                 break;
@@ -1498,7 +1498,7 @@ PartSys.prototype.doConstraints = function(limitList)
 
 
 
-    /*// Tornado:
+    // Tornado:
     // When particle age falls to zero, re-initialize
     // to re-launch from a randomized location with
     // a randomized velocity and randomized age.
@@ -1512,17 +1512,17 @@ PartSys.prototype.doConstraints = function(limitList)
         {
             // Particle is outside the tornado operation area
             // destory and create a new one inside the range  
-            bIsOutside = (this.s1[Properties.position.x] < (this.xMin+20)) ||
-            (this.s1[Properties.position.x] > (this.xMax-20)) ||
-            (this.s1[Properties.position.y] < (this.yMin+20)) ||
-            (this.s1[Properties.position.y] > (this.yMax-20)) ||
-            (this.s1[Properties.position.z] < (this.zMin+20)) ||
-            (this.s1[Properties.position.z] > (this.zMax-20));
+            bIsOutside = (this.s1[Properties.position.x] < (this.xMin+2)) ||
+            (this.s2[Properties.position.x] > (this.xMax-2)) ||
+            (this.s2[Properties.position.y] < (this.yMin+2)) ||
+            (this.s2[Properties.position.y] > (this.yMax-2)) ||
+            (this.s2[Properties.position.z] < (this.zMin+2)) ||
+            (this.s2[Properties.position.z] > (this.zMax-2));
 
             console.log("isOutside? " + bIsOutside);
-            console.log("position.x: " + this.s1[Properties.position.x]);
-            console.log("position.y: " + this.s1[Properties.position.y]);
-            console.log("position.z: " + this.s1[Properties.position.z]);
+            console.log("position.x: " + this.s2[Properties.position.x]);
+            console.log("position.y: " + this.s2[Properties.position.y]);
+            console.log("position.z: " + this.s2[Properties.position.z]);
 
             if(bIsOutside) 
             {
@@ -1531,26 +1531,26 @@ PartSys.prototype.doConstraints = function(limitList)
                 this.roundRand();
                 // all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
                 // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
-                this.s1[j + Properties.position.z] = 2.0 + 1.5*this.randZ;
-                this.s1[j + Properties.position.x] = 0.8 + Properties.position.z*this.randX; 
-                this.s1[j + Properties.position.y] = 0.8 + Properties.position.z*this.randY;  
-                this.s1[j + Properties.position.w] =  1.0;
+                this.s2[j + Properties.position.z] = 2.0 + 1.5*this.randZ;
+                this.s2[j + Properties.position.x] = 0.8 + s2[Properties.position.z]*this.randX; 
+                this.s2[j + Properties.position.y] = 0.8 + s2[Properties.position.z]*this.randY;  
+                this.s2[j + Properties.position.w] =  1.0;
 
                 // Now choose random initial velocities too:
                 this.roundRand();
-                this.s1[j + Properties.velocity.x] =  0;//this.INIT_VEL*(0.2*this.randX);
-                this.s1[j + Properties.velocity.y] =  0;//this.INIT_VEL*(0.2*this.randY);
-                this.s1[j + Properties.velocity.z] =  0;//this.INIT_VEL*(0.2);// + 0.2*this.randZ);
+                this.s2[j + Properties.velocity.x] =  0;//this.INIT_VEL*(0.2*this.randX);
+                this.s2[j + Properties.velocity.y] =  0;//this.INIT_VEL*(0.2*this.randY);
+                this.s2[j + Properties.velocity.z] =  0;//this.INIT_VEL*(0.2);// + 0.2*this.randZ);
 
                 // mass, in kg.
-                this.s1[j + Properties.mass] =  1.0;
+                this.s2[j + Properties.mass] =  1.0;
                 // on-screen diameter, in pixels
-                this.s1[j + Properties.diameter] =  2.0 + 10*Math.random();
-                this.s1[j + Properties.renderMode] = 0.0;
-                this.s1[j + Properties.age] = 50 + 8*Math.random();
+                this.s2[j + Properties.diameter] =  2.0 + 10*Math.random();
+                this.s2[j + Properties.renderMode] = 0.0;
+                this.s2[j + Properties.age] = 50 + 8*Math.random();
             }
         }
-    }*/
+    }
 }
 
 PartSys.prototype.swap = function()
@@ -1590,7 +1590,7 @@ PartSys.prototype.setModelViewMatrixTornado = function()
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(0.0, 10.0, 0.0);
+    modelViewMatrix.translate(2.0, 10.0, 0.0);
     // scale cube
     var s = 2.0;
     modelViewMatrix.scale(s, s, s);
