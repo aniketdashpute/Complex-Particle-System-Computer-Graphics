@@ -348,12 +348,12 @@ PartSys.prototype.initSpringPair = function(count)
             // end point particle number
             fTmp.e2 = j;
             // Spring constant: force = stretchDistance*K_spring
-            fTmp.K_spring = 0.6;
+            fTmp.K_spring = 1.0;
             // Spring damping: (friction within the spring);
             // force = -relVel*K_damp; 'relative velocity' is
             // how fast the spring length is changing, and
             // applied along the direction of the spring.
-            fTmp.K_springDamp = 0.1;
+            fTmp.K_springDamp = 1.0;
             // the zero-force length of this spring.      
             fTmp.K_restLength = 2.0;
             // (and IGNORE all other Cforcer members...)
