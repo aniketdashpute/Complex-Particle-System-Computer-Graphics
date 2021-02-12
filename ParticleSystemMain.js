@@ -947,8 +947,6 @@ function myKeyDown(kev)
                 m = 3;
                 j = m * Properties.maxVariables;
                 console.log("2nd: "+g_partB.s2[j + Properties.position.x]);
-                g_partB.s1[j + Properties.position.x] += 0.5;
-                g_partB.s1[j + Properties.position.y] += 0.5;
                 g_partB.s1[j + Properties.position.z] += 0.5;
                 console.log("2nd CHANGED: "+g_partB.s2[j + Properties.position.x]);
             }
