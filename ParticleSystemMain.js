@@ -923,24 +923,24 @@ function myKeyDown(kev)
                 m = 0;
                 var j = m * Properties.maxVariables;
                 console.log("1st: "+g_partB.s2[j + Properties.position.x]);
+                // g_partB.s1[j + Properties.position.x] += 0.25;
                 g_partB.s1[j + Properties.position.x] += 0.25;
-                g_partB.s1[j + Properties.position.x] += 0.25;
-                g_partB.s1[j + Properties.position.x] += 0.25;
+                // g_partB.s1[j + Properties.position.x] += 0.25;
                 console.log("1st CHANGED: "+g_partB.s2[j + Properties.position.x]);
 
                 m = 1;
                 j = m * Properties.maxVariables;
                 console.log("2nd: "+g_partB.s2[j + Properties.position.x]);
-                g_partB.s1[j + Properties.position.x] += -0.5;
-                g_partB.s1[j + Properties.position.y] += -0.5;
-                g_partB.s1[j + Properties.position.z] += -0.5;
+                g_partB.s1[j + Properties.position.x] += -0.25;
+                // g_partB.s1[j + Properties.position.y] += -0.5;
+                // g_partB.s1[j + Properties.position.z] += -0.5;
                 console.log("2nd CHANGED: "+g_partB.s2[j + Properties.position.x]);
 
                 m = 2;
                 j = m * Properties.maxVariables;
                 console.log("2nd: "+g_partB.s2[j + Properties.position.x]);
-                g_partB.s1[j + Properties.position.x] += -0.25;
-                g_partB.s1[j + Properties.position.y] += -0.25;
+                // g_partB.s1[j + Properties.position.x] += -0.25;
+                // g_partB.s1[j + Properties.position.y] += -0.25;
                 g_partB.s1[j + Properties.position.z] += -0.25;
                 console.log("2nd CHANGED: "+g_partB.s2[j + Properties.position.x]);
 

@@ -721,9 +721,9 @@ PartSys.prototype.initReevesFire = function(count)
         this.roundRand();
         // all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
         // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
-        this.s1[j + Properties.position.x] = 0.8;// + 0.1*this.randX; 
-        this.s1[j + Properties.position.y] = 0.8;// + 0.1*this.randY;  
-        this.s1[j + Properties.position.z] = 0.8;// + 0.1*this.randZ;
+        this.s1[j + Properties.position.x] = 0.8 + 1.0*this.randX; 
+        this.s1[j + Properties.position.y] = 0.8 + 1.0*this.randY;  
+        this.s1[j + Properties.position.z] = 0.8 + 1.0*this.randZ;
         this.s1[j + Properties.position.w] =  1.0;
 
         // Now choose random initial velocities too:
@@ -737,7 +737,7 @@ PartSys.prototype.initReevesFire = function(count)
         // on-screen diameter, in pixels
         this.s1[j + Properties.diameter] =  2.0 + 10*Math.random();
         this.s1[j + Properties.renderMode] = 0.0;
-        this.s1[j + Properties.age] = 20 + 8*Math.random();
+        this.s1[j + Properties.age] = 20 + 5*Math.random();
     }
     // COPY contents of state-vector s1 to s2
     this.s2.set(this.s1);
@@ -1449,6 +1449,9 @@ PartSys.prototype.applyForces = function(s, fList)
                         // destroy particle
                         // (init parameters to use as a new particle)
                     }
+                    // only for the equation used below for F_magnitude,
+                    // I referred to the this link:
+                    // https://www.cs.rpi.edu/~cutler/classes/advancedgraphics/S10/final_projects/coppola_tahara.pdf
                     var Fmag = (5 - 2*Math.log(rad + 1) + (hGround/fList[k].tornadoHeight) * 0.2);
                     // console.log("Fx: " + Fmag * dirX);
                     // console.log("Fy: " + Fmag * dirY);
@@ -1689,23 +1692,23 @@ PartSys.prototype.doConstraints = function(limitList)
                                         // a 3D unit sphere centered at the origin.
                 //all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
                 // set random positions in a 0.1-radius ball centered at (-0.8,-0.8,-0.8)
-                this.s2[j + Properties.position.x] = 0.8; // + 0.2*this.randX; 
-                this.s2[j + Properties.position.y] = 0.8; // + 0.2*this.randY;  
-                this.s2[j + Properties.position.z] = 0.8; // + 0.2*this.randZ;
+                this.s2[j + Properties.position.x] = 0.8 + 1.0*this.randX;
+                this.s2[j + Properties.position.y] = 0.8 + 1.0*this.randY;
+                this.s2[j + Properties.position.z] = 0.8 + 1.0*this.randZ;
                 // position 'w' coordinate;
                 this.s2[j + Properties.position.w] =  1.0;
 
                 // Now choose random initial velocities too:
                 this.roundRand();
-                this.s2[j + Properties.velocity.x] =  this.INIT_VEL*(0.0 + 0.2*this.randX);
-                this.s2[j + Properties.velocity.y] =  this.INIT_VEL*(0.0 + 0.2*this.randY);
+                this.s2[j + Properties.velocity.x] =  (this.s2[j + Properties.position.x] - 0.8)*this.INIT_VEL*(0.0 + 0.2*this.randX);
+                this.s2[j + Properties.velocity.y] =  (this.s2[j + Properties.position.y] - 0.8)*this.INIT_VEL*(0.0 + 0.2*this.randY);
                 this.s2[j + Properties.velocity.z] =  this.INIT_VEL*(0.4 + 0.2*this.randZ);
                 // mass, in kg.
                 this.s2[j + Properties.mass] =  1.0;
                 // on-screen diameter, in pixels
                 this.s2[j + Properties.diameter] =  2.0 + 1*Math.random();
                 this.s2[j + Properties.renderMode] = 0.0;
-                this.s2[j + Properties.age] = 20 + 8*Math.random();
+                this.s2[j + Properties.age] = 10 + 5*Math.random();
             }
         }
     }
@@ -1804,7 +1807,7 @@ PartSys.prototype.setModelViewMatrixTornado = function()
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(2.0, 10.0, 0.0);
+    modelViewMatrix.translate(10.0, 15.0, 0.0);
     // scale cube
     var s = 2.0;
     modelViewMatrix.scale(s, s, s);
@@ -1827,7 +1830,7 @@ PartSys.prototype.setModelViewMatrixReevesFire = function()
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(-5.0, 10.0, 0.0);
+    modelViewMatrix.translate(-10.0, 10.0, 0.0);
     // scale cube
     var s = 2.0;
     modelViewMatrix.scale(s, s, s);
@@ -1850,7 +1853,7 @@ PartSys.prototype.setModelViewMatrixSpringPair = function()
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(0.0, 10.0, 0.0);
+    modelViewMatrix.translate(0.0, 20.0, 0.0);
     // scale cube
     var s = 2.0;
     modelViewMatrix.scale(s, s, s);
@@ -1873,7 +1876,7 @@ PartSys.prototype.setModelViewMatrixBouncy = function()
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(5.0, 5.0, 0.0);
+    modelViewMatrix.translate(0.0, 5.0, 0.0);
     // scale cube
     var s = 2.0;
     modelViewMatrix.scale(s, s, s);
