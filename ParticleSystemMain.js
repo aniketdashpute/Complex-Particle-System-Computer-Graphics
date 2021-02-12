@@ -71,7 +71,7 @@ function main()
     g_partC.initReevesFire(150);
 
     // create Tornado
-    g_partD.initTornado(150);
+    g_partD.initTornado(50);
 
     // recursively call tick() using requestAnimationFrame
     var tick = function ()
@@ -814,13 +814,13 @@ function drawScene(gl, programInfo, buffersCube, buffersGround)
     // Without clearing screen, draw ground now
     drawGround(gl, buffersGround, programInfo);
 
-    // draw the first particle system - Bouncy Balls
+    // // draw the first particle system - Bouncy Balls
     drawPartSysBouncy();
 
-    // draw the second particle system - Spring system
+    // // draw the second particle system - Spring system
     drawPartSysSpring();
 
-    // draw the third particle system - Reeves Fire
+    // // draw the third particle system - Reeves Fire
     drawPartSysReevesFire();
     
     // draw the fourth particle system - Tornado

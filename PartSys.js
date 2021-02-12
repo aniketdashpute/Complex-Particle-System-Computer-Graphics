@@ -804,7 +804,7 @@ PartSys.prototype.initTornado = function(count)
     // Float32Array objects are zero-filled by default
 
     // use fountain like effect for Tornado (vanish particles after some time)
-    this.isTornado = false;
+    this.isTornado = true;
     // this.isFountain = false;
 
 
@@ -846,7 +846,7 @@ PartSys.prototype.initTornado = function(count)
     // negative value means ALL particles
     fTmp.partCount = -1;
     // specify the tornado center
-    fTmp.TornadoCenter = new Vector4([0,0,0,1]);
+    this.TornadoCenter = new Vector4([0,0,0,1]);
     // range of the tornado
     tornadoRadius = 5.0;
     // height upto which Tornado will work
@@ -1201,9 +1201,9 @@ PartSys.prototype.applyForces = function(s, fList)
                     // first calculate the in vector (tangential vector for ith particle)
                     // this vector will be parallel to ground plane
 
-                    var fLx = s[j + Properties.position.x] - fList[k].TornadoCenter.elements[0];
-                    var fLy = s[j + Properties.position.y] - fList[k].TornadoCenter.elements[1];
-                    var fLz = s[j + Properties.position.z] - fList[k].TornadoCenter.elements[2];
+                    var fLx = s[j + Properties.position.x] - this.TornadoCenter.elements[0];
+                    var fLy = s[j + Properties.position.y] - this.TornadoCenter.elements[1];
+                    var fLz = s[j + Properties.position.z] - this.TornadoCenter.elements[2];
                   
                     // Normalize f.
                     var rlf = 1 / Math.sqrt(fLx*fLx + fLy*fLy + fLz*fLz);
@@ -1524,7 +1524,7 @@ PartSys.prototype.doConstraints = function(limitList)
             console.log("position.y: " + this.s2[Properties.position.y]);
             console.log("position.z: " + this.s2[Properties.position.z]);
 
-            if(bIsOutside) 
+            if(bIsOutside)
             {
                 // set this.randX,randY,randZ to random location in
                 // a 3D unit sphere centered at the origin
@@ -1532,8 +1532,8 @@ PartSys.prototype.doConstraints = function(limitList)
                 // all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
                 // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
                 this.s2[j + Properties.position.z] = 2.0 + 1.5*this.randZ;
-                this.s2[j + Properties.position.x] = 0.8 + s2[Properties.position.z]*this.randX; 
-                this.s2[j + Properties.position.y] = 0.8 + s2[Properties.position.z]*this.randY;  
+                this.s2[j + Properties.position.x] = this.s2[Properties.position.z]*this.randX; 
+                this.s2[j + Properties.position.y] = this.s2[Properties.position.z]*this.randY;  
                 this.s2[j + Properties.position.w] =  1.0;
 
                 // Now choose random initial velocities too:
