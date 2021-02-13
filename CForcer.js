@@ -202,7 +202,7 @@ CForcer.prototype.applyBoidForces = function(s, flockNeighbourhood, mStart, mEnd
         var del_F3 = this.matchVelocity(s, fNb3, m, mStart, mEnd, scaling3);
 
         // rule 4: move particles away from obstacle
-        //var del_F3 = this.ruleSteerAwayObject(s, fNb4, m, mStart, mEnd, scaling4, objPos);
+        var del_F3 = this.ruleSteerAwayObject(s, fNb4, m, mStart, mEnd, scaling4, objPos);
 
         // apply the forces as a net flocking force
         var del_F_x = del_F1.x + del_F2.x + del_F3.x;
@@ -254,10 +254,18 @@ CForcer.prototype.ruleSteerTowards = function(s, flockNeighbourhood, mJ, mStart,
         }
     }
     
-    cen_x = cen_x / nbCount;
-    cen_y = cen_y / nbCount;
-    cen_z = cen_z / nbCount;
-
+    if (nbCount == 0)
+    {
+        cen_x = curr_x;
+        cen_y = curr_y;
+        cen_z = curr_z;
+    }
+    else
+    {
+        cen_x = cen_x / nbCount;
+        cen_y = cen_y / nbCount;
+        cen_z = cen_z / nbCount;
+    }
 
     // calculate distance of our particle from centroid
     var Fx = (cen_x - curr_x) * scaling;
@@ -310,10 +318,18 @@ CForcer.prototype.ruleSteerAway = function(s, flockNeighbourhood, mJ, mStart, mE
         }
     }
     
-    cen_x = cen_x / nbCount;
-    cen_y = cen_y / nbCount;
-    cen_z = cen_z / nbCount;
-
+    if (nbCount == 0)
+    {
+        cen_x = curr_x;
+        cen_y = curr_y;
+        cen_z = curr_z;
+    }
+    else
+    {
+        cen_x = cen_x / nbCount;
+        cen_y = cen_y / nbCount;
+        cen_z = cen_z / nbCount;
+    }
 
     // calculate distance of our particle from centroid
     // apply that displacement in the opposite direction
@@ -374,9 +390,19 @@ CForcer.prototype.matchVelocity = function(s, flockNeighbourhood, mJ, mStart, mE
         }
     }
     
-    vAvg_x = vAvg_x / nbCount;
-    vAvg_y = vAvg_y / nbCount;
-    vAvg_z = vAvg_z / nbCount;
+    if (nbCount == 0)
+    {
+        vAvg_x = vCurr_x;
+        vAvg_y = vCurr_y;
+        vAvg_z = vCurr_z;
+    }
+    else
+    {
+        vAvg_x = vAvg_x / nbCount;
+        vAvg_y = vAvg_y / nbCount;
+        vAvg_z = vAvg_z / nbCount;
+    }
+    
 
 
     // calculate distance of our particle from centroid

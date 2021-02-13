@@ -320,7 +320,7 @@ function setModelViewMatrixCube(gl, programInfo, currentAngle)
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(0.0, 0.0, 3.0);
+    modelViewMatrix.translate(0.0, 0.0, 0.0);
     // scale cube
     var s = 0.5;
     modelViewMatrix.scale(s, s, s);
@@ -808,6 +808,8 @@ function drawCube(gl, buffers, programInfo)
     currentAngle += (g_timeStep * angleQuant)/1000;
     // specify the modelView matrix for transforming our cube
     setModelViewMatrixCube(gl, programInfo, currentAngle);
+    // specify the modelView matrix for transforming our particle system
+    g_partE.setModelViewMatrixBoids();
 
     // data type for indices
     const type = gl.UNSIGNED_SHORT;
@@ -848,7 +850,7 @@ function drawScene(gl, programInfo, buffersCube, buffersGround)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     // Draw cube first
-    //drawCube(gl, buffersCube, programInfo);
+    drawCube(gl, buffersCube, programInfo);
 
     // Without clearing screen, draw ground now
     drawGround(gl, buffersGround, programInfo);

@@ -482,37 +482,33 @@ CLimit.prototype.enforceLimitVolumeWrap = function(partCount, drag, sPrev, sNow)
     // i==particle number; j==array index for i-th particle
     var j = 0;
     for(var i = 0; i < partCount; i += 1, j+= Properties.maxVariables)
-    {
-        sNow[j + Properties.position.x] = (sNow[j + Properties.position.x] - this.xMin + Lx)%Lx + this.xMin;
-        sNow[j + Properties.position.y] = (sNow[j + Properties.position.y] - this.yMin + Ly)%Ly + this.yMin;
-        sNow[j + Properties.position.z] = (sNow[j + Properties.position.z] - this.zMin + Lz)%Lz + this.zMin;
-        
-        // if( sNow[j + Properties.position.x] < (this.xMin))
-        // {
-        //     sNow[j + Properties.position.x] = (sNow[j + Properties.position.x] - this.xMin + Lx) + this.xMin;
-        // }
-        // else if( sNow[j + Properties.position.x] >  (this.xMax))
-        // {
-        //     sNow[j + Properties.position.x] = Math.max(sNow[j + Properties.position.x] - Lx, this.xMin);
-        // }
+    {      
+        if( sNow[j + Properties.position.x] < (this.xMin))
+        {
+            sNow[j + Properties.position.x] = (sNow[j + Properties.position.x] + Lx);
+        }
+        else if( sNow[j + Properties.position.x] >  (this.xMax))
+        {
+            sNow[j + Properties.position.x] = sNow[j + Properties.position.x] - Lx;
+        }
 
-        // if( sNow[j + Properties.position.y] < (this.yMin))
-        // {
-        //     sNow[j + Properties.position.y] = Math.min(sNow[j + Properties.position.y] + Ly, this.yMax);
-        // }
-        // else if( sNow[j + Properties.position.y] >  (this.yMax))
-        // {
-        //     sNow[j + Properties.position.y] = Math.max(sNow[j + Properties.position.y] - Ly, this.yMin);
-        // }
+        if( sNow[j + Properties.position.y] < (this.yMin))
+        {
+            sNow[j + Properties.position.y] = sNow[j + Properties.position.y] + Ly;
+        }
+        else if( sNow[j + Properties.position.y] >  (this.yMax))
+        {
+            sNow[j + Properties.position.y] = sNow[j + Properties.position.y] - Ly;
+        }
 
-        // if( sNow[j + Properties.position.z] < (this.zMin))
-        // {
-        //     sNow[j + Properties.position.z] = Math.min(sNow[j + Properties.position.z] + Lz, this.zMax);
-        // }
-        // else if( sNow[j + Properties.position.z] >  (this.zMax))
-        // {
-        //     sNow[j + Properties.position.z] = Math.max(sNow[j + Properties.position.z] - Lz, this.zMin);
-        // }
+        if( sNow[j + Properties.position.z] < (this.zMin))
+        {
+            sNow[j + Properties.position.z] = sNow[j + Properties.position.z] + Lz;
+        }
+        else if( sNow[j + Properties.position.z] >  (this.zMax))
+        {
+            sNow[j + Properties.position.z] = sNow[j + Properties.position.z] - Lz;
+        }
     }
 
     return{

@@ -1029,61 +1029,42 @@ PartSys.prototype.initBoids = function(count)
 
     // Create force-causing objects:
     var fTmp = new CForcer();
-
-    // drag for all particles:
-    fTmp = new CForcer();
-    // Viscous Drag
-    // Negate (remove) the drag force for now
-    fTmp.forceType = -Forces.Drag;
+    // fTmp = new CForcer();
+    // Boids (Flocking )
+    fTmp.forceType = Forces.Flocking;
     // in Euler solver, scales velocity by 0.85
-    fTmp.Kdrag = 0.15;
+    // fTmp.Kdrag = 0.15;
     // apply it to ALL particles
     fTmp.targFirst = 0;
     // negative value means ALL particles
     fTmp.partCount = -1;
     // (and IGNORE all other Cforcer members...)
     // append this to the forceList array of force-causing objects
-    this.forceList.push(fTmp);
 
-    // drag for all particles:
-    fTmp = new CForcer();
-    // Viscous Drag
-    fTmp.forceType = Forces.Flocking;
-    // in Euler solver, scales velocity by 0.85
-    fTmp.Kdrag = 0.15;
-    // apply it to ALL particles
-    fTmp.targFirst = 0;
-    // negative value means ALL particles
-    fTmp.partCount = -1;
+    this.forceList.push(fTmp);
 
     // specify the scaling factor for all the rules of boids sytem
     this.scalingBoid = {
-        Cohesive: 0.3,
-        Repulsive: 0.3,
-        Velocity: 0.5,
-        Obstacle: 10.0,
+        Cohesive:  0.5,
+        Repulsive: 0.2,
+        Velocity:  1.0,
+        Obstacle:  0.0,
     }
 
     // specify how much neighbourhood to account for while simulation
     this.flockNb = {
-        Cohesive: 20,
-        Repulsive: 15,
-        Velocity: 15,
-        Obstacle: 50,
+        Cohesive:  15,
+        Repulsive: 10,
+        Velocity:  15,
+        Obstacle:  10,
     }
 
     // define obstacle position:
     this.obstPos = {
         x: 0,
-        y: 25,
-        z: 10,
+        y: 0,
+        z: 0,
     }
-
-
-    // (and IGNORE all other Cforcer members...)
-    // append this to the forceList array of force-causing objects
-
-    this.forceList.push(fTmp);
 
     // Report:
     console.log("PartSys.initBouncy2D() created PartSys.forceList[] array of ");
@@ -1108,12 +1089,12 @@ PartSys.prototype.initBoids = function(count)
     // through all the rest of them
     cTmp.partCount = -1;
     // box extent:  +/- 1.0 box at origin
-    cTmp.xMin = this.xMin = -30.0;
-    cTmp.xMax = this.xMax = 30.0;
-    cTmp.yMin = this.yMin = 5.0;
-    cTmp.yMax = this.yMax = 45.0;
-    cTmp.zMin = this.zMin = 0.0;
-    cTmp.zMax = this.zMax = 20.0;
+    cTmp.xMin = this.xMin = -20.0;
+    cTmp.xMax = this.xMax = 20.0;
+    cTmp.yMin = this.yMin = -10.0;
+    cTmp.yMax = this.yMax = 10.0;
+    cTmp.zMin = this.zMin = -10.0;
+    cTmp.zMax = this.zMax = 10.0;
 
     // (and IGNORE all other CLimit members...)
     // append this to array of constraint-causing objects
@@ -1154,7 +1135,7 @@ PartSys.prototype.initBoids = function(count)
     // ==0 for velocity-reversal, as in all previous versions
     // ==1 for Chapter 3's collision resolution method, which uses
     // an 'impulse' to cancel any velocity boost caused by falling below the floor
-    this.bounceType = 0;
+    this.bounceType = -1;
 
 
 
@@ -1178,8 +1159,8 @@ PartSys.prototype.initBoids = function(count)
         // Now choose random initial velocities too:
         this.roundRand();
         this.s1[j + Properties.velocity.x] =  this.INIT_VEL*(-1.0 +0.5*this.randX);
-        this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(0.5*this.randY);
-        this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.5*this.randX);// + 0.2*this.randZ);
+        this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(0.05*this.randY);
+        this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.05*this.randZ);
 
         // mass, in kg.
         this.s1[j + Properties.mass] =  1.0;
@@ -1824,7 +1805,7 @@ PartSys.prototype.setModelViewMatrixBoids = function()
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(0.0, 50.0, 50.0);
+    modelViewMatrix.translate(0.0, 70.0, 40.0);
     // scale cube
     var s = 2.0;
     modelViewMatrix.scale(s, s, s);
