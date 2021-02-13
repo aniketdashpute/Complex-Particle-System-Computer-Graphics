@@ -57,33 +57,34 @@ const LimitType = {
     * MatrixCylinderVolume: 12,
     * MatrixCylinderSide: 13,
     */
+    VolumeWrap: 10,
     // Distance constraints:
     Distance:
     {
         // Keep specified particle(s) at world-space location
-        Anchor: 10,
+        Anchor: 11,
         // Limit specified particles(s) positions to stay
         // within xMin,xMax,yMin,yMax,yMin,zMax (for example,
         // xMin=0, xMax=1, yMin=yMax=5; zMin=zMax=3; would
         // allow particle to 'slide' along line segment in x.
-        Slot: 11,
+        Slot: 12,
         // Connects 2 particles with fixed-length separation
         // between particles whose indices are held in e1,e2
         // (e.g. particles at pS0[e1] and pS0[e2] )
-        Rod: 12,
+        Rod: 13,
         // Prevent 2 particles selected by members e1,e2 fro
         // separating by more than distance 'radMax';
-        Rope: 13,
+        Rope: 14,
         // Prevent any particle in a set (targFirst,targCount)
         // from getting closer than 2*this.radius to any other
         // particle in that set, as if both particles were
         // hard solid spheres that can't pass thru each other.
-        Radius: 14,
+        Radius: 13,
         // Keep constant sum-of-distances for 3 particles
         // A,B,Pivot:  ||A-Pivot||+||B-Pivot|| = dmax.
-        Pulley: 15,
+        Pulley: 16,
         // Max number of possible limitType values available
-        maxVariables: 16,
+        maxVariables: 17,
    }   
 }
 
@@ -455,6 +456,63 @@ CLimit.prototype.enforceLimitVolume = function(bounceType, partCount, drag, sPre
     {
         console.log('?!?! unknown constraint: PartSys.bounceType==' + this.bounceType);
         return;
+    }
+
+    return{
+        s1: sPrev,
+        s2: sNow,
+    }
+}
+
+CLimit.prototype.enforceLimitVolumeWrap = function(partCount, drag, sPrev, sNow)
+{
+    // bounceType:
+    // ==0 for velocity-reversal, as in all previous versions
+    // ==1 for Chapter 3's collision resolution method, which uses
+
+    K_resti = this.K_resti;
+
+
+    var Lx = (this.xMax - this.xMin);
+    var Ly = (this.yMax - this.yMin);
+    var Lz = (this.zMax - this.zMin);
+    console.log("Lx: " + Lx + " Ly: " + Ly + " Lz: " + Lz);
+
+
+    // i==particle number; j==array index for i-th particle
+    var j = 0;
+    for(var i = 0; i < partCount; i += 1, j+= Properties.maxVariables)
+    {
+        sNow[j + Properties.position.x] = (sNow[j + Properties.position.x] - this.xMin + Lx)%Lx + this.xMin;
+        sNow[j + Properties.position.y] = (sNow[j + Properties.position.y] - this.yMin + Ly)%Ly + this.yMin;
+        sNow[j + Properties.position.z] = (sNow[j + Properties.position.z] - this.zMin + Lz)%Lz + this.zMin;
+        
+        // if( sNow[j + Properties.position.x] < (this.xMin))
+        // {
+        //     sNow[j + Properties.position.x] = (sNow[j + Properties.position.x] - this.xMin + Lx) + this.xMin;
+        // }
+        // else if( sNow[j + Properties.position.x] >  (this.xMax))
+        // {
+        //     sNow[j + Properties.position.x] = Math.max(sNow[j + Properties.position.x] - Lx, this.xMin);
+        // }
+
+        // if( sNow[j + Properties.position.y] < (this.yMin))
+        // {
+        //     sNow[j + Properties.position.y] = Math.min(sNow[j + Properties.position.y] + Ly, this.yMax);
+        // }
+        // else if( sNow[j + Properties.position.y] >  (this.yMax))
+        // {
+        //     sNow[j + Properties.position.y] = Math.max(sNow[j + Properties.position.y] - Ly, this.yMin);
+        // }
+
+        // if( sNow[j + Properties.position.z] < (this.zMin))
+        // {
+        //     sNow[j + Properties.position.z] = Math.min(sNow[j + Properties.position.z] + Lz, this.zMax);
+        // }
+        // else if( sNow[j + Properties.position.z] >  (this.zMax))
+        // {
+        //     sNow[j + Properties.position.z] = Math.max(sNow[j + Properties.position.z] - Lz, this.zMin);
+        // }
     }
 
     return{

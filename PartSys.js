@@ -1055,14 +1055,29 @@ PartSys.prototype.initBoids = function(count)
     fTmp.targFirst = 0;
     // negative value means ALL particles
     fTmp.partCount = -1;
-    // specify the cohesive strength of flocking system
-    this.Cohesive = 0.5;
+
+    // specify the scaling factor for all the rules of boids sytem
+    this.scalingBoid = {
+        Cohesive: 2.0,
+        Repulsive: 5.0,
+        Velocity: 0.5,
+        Obstacle: 10.0,
+    }
+
     // specify how much neighbourhood to account for while simulation
-    this.flockNeighbourhood = 10;
-    // specify how much weightage should be given to average velocity
-    // for velocity matching operation
-    this.avgVelWeight = 0.5;
-    // static collision avoidance
+    this.flockNb = {
+        Cohesive: 20,
+        Repulsive: 15,
+        Velocity: 15,
+        Obstacle: 50,
+    }
+
+    // define obstacle position:
+    this.obstPos = {
+        x: 0,
+        y: 25,
+        z: 10,
+    }
 
 
     // (and IGNORE all other Cforcer members...)
@@ -1087,20 +1102,19 @@ PartSys.prototype.initBoids = function(count)
     // set how particles 'bounce' from its surface
     cTmp.hitType = -1;//HitType.BounceVelocityReversal;
     // confine particles inside axis-aligned rectangular volume
-    cTmp.limitType = LimitType.Volume;
+    cTmp.limitType = LimitType.VolumeWrap;
     // applies to ALL particles; starting at 0
     cTmp.targFirst = 0;
     // through all the rest of them
     cTmp.partCount = -1;
     // box extent:  +/- 1.0 box at origin
-    cTmp.xMin = -10.0; cTmp.xMax = 10.0;
-    cTmp.yMin = -10.0; cTmp.yMax = 10.0;
-    cTmp.zMin = 0.0; cTmp.zMax = 15.0;
-    this.xMin = -10.0; this.xMax = 10.0;
-    this.yMin = -10.0; this.yMax = 10.0;
-    this.zMin = 0.0; this.zMax = 15.0;
-    // bouncyness: coeff. of restitution.
-    cTmp.Kresti = 1.0;
+    cTmp.xMin = this.xMin = -30.0;
+    cTmp.xMax = this.xMax = 30.0;
+    cTmp.yMin = this.yMin = 5.0;
+    cTmp.yMax = this.yMax = 45.0;
+    cTmp.zMin = this.zMin = 0.0;
+    cTmp.zMax = this.zMax = 20.0;
+
     // (and IGNORE all other CLimit members...)
     // append this to array of constraint-causing objects
     this.limitList.push(cTmp);
@@ -1113,8 +1127,6 @@ PartSys.prototype.initBoids = function(count)
         console.log("CLimitList[",i,"]");
         this.limitList[i].printMe();
     }
-
-
 
 
     // initial velocity in meters/sec.
@@ -1158,16 +1170,16 @@ PartSys.prototype.initBoids = function(count)
         this.roundRand();
         // all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
         // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
-        this.s1[j + Properties.position.z] = 1.5 + 1.5*this.randZ;
-        this.s1[j + Properties.position.x] = 0.0 + this.s1[Properties.position.z]*this.randX; 
-        this.s1[j + Properties.position.y] = 0.0 + this.s1[Properties.position.z]*this.randY;  
+        this.s1[j + Properties.position.z] = 5 + 5*this.randZ;
+        this.s1[j + Properties.position.x] = 5 + 5*this.randX; 
+        this.s1[j + Properties.position.y] = 5 + 5*this.randY;  
         this.s1[j + Properties.position.w] =  1.0;
 
         // Now choose random initial velocities too:
         this.roundRand();
-        this.s1[j + Properties.velocity.x] =  this.INIT_VEL*(0.2*this.randX);
-        this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(0.2*this.randY);
-        this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.2);// + 0.2*this.randZ);
+        this.s1[j + Properties.velocity.x] =  this.INIT_VEL*(2.0*this.randX);
+        this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(+1.0+ 0.5*this.randY);
+        this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0);//1+0.5*this.randX);// + 0.2*this.randZ);
 
         // mass, in kg.
         this.s1[j + Properties.mass] =  1.0;
@@ -1466,7 +1478,9 @@ PartSys.prototype.applyForces = function(s, fList)
                     
                 }
                 break;
-                
+            case Forces.Flocking:
+                fList[k].applyBoidForces(s, this.flockNb, m, mmax, this.scalingBoid, this.obstPos);
+                break;
             default:
                 console.log("!!!ApplyForces() fList[",k,"] invalid forceType:", fList[k].forceType);
                 break;
@@ -1659,6 +1673,9 @@ PartSys.prototype.doConstraints = function(limitList)
                 break;
             case LimitType.MatrixVolume:
                 break;
+            case LimitType.VolumeWrap:
+                limitList[k].enforceLimitVolumeWrap(this.partCount, this.drag, this.s1, this.s2);
+                break;
             default:
                 console.log("default option selected");
                 break;
@@ -1794,6 +1811,29 @@ PartSys.prototype.roundRand = function()
     }
     // is x,y,z outside sphere? try again!
     while (this.randX*this.randX + this.randY*this.randY + this.randZ*this.randZ >= 1.0);
+}
+
+PartSys.prototype.setModelViewMatrixBoids = function()
+{
+    // create and set the model view matrix
+
+    // our viewing angle is such that the screen is x-z plane
+    // and inside screen is +y-axis
+
+    var modelViewMatrix = new Matrix4();
+    
+    modelViewMatrix.setIdentity();
+    // translate cube
+    modelViewMatrix.translate(0.0, 50.0, 50.0);
+    // scale cube
+    var s = 2.0;
+    modelViewMatrix.scale(s, s, s);
+
+    // Pass our current matrix to the vertex shaders:
+	gl.uniformMatrix4fv(
+        programInfo.uniformLocations.modelViewMatrix,
+        false,
+        modelViewMatrix.elements);
 }
 
 PartSys.prototype.setModelViewMatrixTornado = function()

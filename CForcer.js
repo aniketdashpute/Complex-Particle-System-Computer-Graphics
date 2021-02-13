@@ -168,3 +168,255 @@ CForcer.prototype.printMe = function(opt_src)
     }
     console.log("..........................................");
 }
+
+CForcer.prototype.applyBoidForces = function(s, flockNeighbourhood, mStart, mEnd, scaling, objPos)
+{
+    // var flockNeighbourhood = {
+    //     Cohesive: flockNbCohesive,
+    //     Repulsive: flockNbRepulsive,
+    //     Velocity: flockNbVelocity,
+    //     Obstacle: flockNbObstacle,
+    // }
+
+    var scaling1 = scaling.Cohesive;
+    var scaling2 = scaling.Repulsive;
+    var scaling3 = scaling.Velocity;
+    var scaling4 = scaling.Obstacle;
+
+    var fNb1 = flockNeighbourhood.Cohesive;
+    var fNb2 = flockNeighbourhood.Repulsive;
+    var fNb3 = flockNeighbourhood.Velocity;
+    var fNb4 = flockNeighbourhood.Obstacle;
+
+    var j = mStart*Properties.maxVariables;  // state var array index for particle # m
+    for(var m = mStart; m<mEnd; m++, j+=Properties.maxVariables)
+    {
+        // rule 1: steer towards centre of mass
+        //console.log("current mJ: " + m);
+        var del_F1 = this.ruleSteerTowards(s, fNb1, m, mStart, mEnd, scaling1);
+
+        // rule 2: steer away from neighbouring particles
+        var del_F2 = this.ruleSteerAway(s, fNb2, m, mStart, mEnd, scaling2);
+
+        // rule 3: make velocity closer to average neighbourhood velocity
+        var del_F3 = this.matchVelocity(s, fNb3, m, mStart, mEnd, scaling3);
+
+        // rule 4: move particles away from obstacle
+        //var del_F3 = this.ruleSteerAwayObject(s, fNb4, m, mStart, mEnd, scaling4, objPos);
+
+        // apply the forces as a net flocking force
+        var del_F_x = del_F1.x + del_F2.x + del_F3.x;
+        var del_F_y = del_F1.y + del_F2.y + del_F3.y;
+        var del_F_z = del_F1.z + del_F2.z + del_F3.z;
+
+        s[j + Properties.force.x] += del_F_x;
+        s[j + Properties.force.y] += del_F_y;
+        s[j + Properties.force.z] += del_F_z;
+    }
+}
+
+CForcer.prototype.ruleSteerTowards = function(s, flockNeighbourhood, mJ, mStart, mEnd, scaling)
+{
+    // inside the neighbourhood:
+    // calculate the centroid
+    var cen_x = 0;
+    var cen_y = 0;
+    var cen_z = 0;
+
+    var j = mStart*Properties.maxVariables;
+    var i1 = mJ*Properties.maxVariables;
+    var curr_x = s[i1 + Properties.position.x];
+    var curr_y = s[i1 + Properties.position.y];
+    var curr_z = s[i1 + Properties.position.z];
+
+    var nbCount = 0;
+
+    for(m = mStart; m<mEnd; m++, j+=Properties.maxVariables)
+    {
+        
+        var i2 = m*Properties.maxVariables;
+
+        var diff_x = Math.pow(curr_x - s[i2 + Properties.position.x], 2);
+        var diff_y = Math.pow(curr_y - s[i2 + Properties.position.y], 2);
+        var diff_z = Math.pow(curr_z - s[i2 + Properties.position.z], 2);
+        var fNb = Math.pow(flockNeighbourhood, 2);
+
+        if ((diff_x + diff_y + diff_z) <= fNb)
+        {
+            if (m != mJ)
+            {
+                cen_x = cen_x + s[i2 + Properties.position.x];
+                cen_y = cen_y + s[i2 + Properties.position.y];
+                cen_z = cen_z + s[i2 + Properties.position.z];
+
+                nbCount = nbCount + 1;
+            }
+        }
+    }
+    
+    cen_x = cen_x / nbCount;
+    cen_y = cen_y / nbCount;
+    cen_z = cen_z / nbCount;
+
+
+    // calculate distance of our particle from centroid
+    var Fx = (cen_x - curr_x) * scaling;
+    var Fy = (cen_y - curr_y) * scaling;
+    var Fz = (cen_z - curr_z) * scaling;
+
+    return {
+        x: Fx,
+        y: Fy,
+        z: Fz,
+    }
+}
+
+CForcer.prototype.ruleSteerAway = function(s, flockNeighbourhood, mJ, mStart, mEnd, scaling)
+{
+    // inside the neighbourhood:
+    // calculate the centroid
+    var cen_x = 0;
+    var cen_y = 0;
+    var cen_z = 0;
+
+    var j = mStart*Properties.maxVariables;
+    var i1 = mJ*Properties.maxVariables;
+    var curr_x = s[i1 + Properties.position.x];
+    var curr_y = s[i1 + Properties.position.y];
+    var curr_z = s[i1 + Properties.position.z];
+
+    var nbCount = 0;
+
+    for(m = mStart; m<mEnd; m++, j+=Properties.maxVariables)
+    {
+        
+        var i2 = m*Properties.maxVariables;
+
+        var diff_x = Math.pow(curr_x - s[i2 + Properties.position.x], 2);
+        var diff_y = Math.pow(curr_y - s[i2 + Properties.position.y], 2);
+        var diff_z = Math.pow(curr_z - s[i2 + Properties.position.z], 2);
+        var fNb = Math.pow(flockNeighbourhood, 2);
+
+        if ((diff_x + diff_y + diff_z) <= fNb)
+        {
+            if (m != mJ)
+            {
+                cen_x = cen_x + s[i2 + Properties.position.x];
+                cen_y = cen_y + s[i2 + Properties.position.y];
+                cen_z = cen_z + s[i2 + Properties.position.z];
+
+                nbCount = nbCount + 1;
+            }
+        }
+    }
+    
+    cen_x = cen_x / nbCount;
+    cen_y = cen_y / nbCount;
+    cen_z = cen_z / nbCount;
+
+
+    // calculate distance of our particle from centroid
+    // apply that displacement in the opposite direction
+    var Fx = -(cen_x - curr_x) * scaling;
+    var Fy = -(cen_y - curr_y) * scaling;
+    var Fz = -(cen_z - curr_z) * scaling;
+
+    return{
+        x: Fx,
+        y: Fy,
+        z: Fz,
+    }
+}
+
+CForcer.prototype.matchVelocity = function(s, flockNeighbourhood, mJ, mStart, mEnd, scaling)
+{
+    // inside the neighbourhood:
+    // calculate the average velocity of the flock in neighbourhood
+   // inside the neighbourhood:
+    // calculate the centroid
+    var vAvg_x = 0;
+    var vAvg_y = 0;
+    var vAvg_z = 0;
+
+    var j = mStart*Properties.maxVariables;
+    var i1 = mJ*Properties.maxVariables;
+
+    var vCurr_x = s[i1 + Properties.velocity.x];
+    var vCurr_y = s[i1 + Properties.velocity.y];
+    var vCurr_z = s[i1 + Properties.velocity.z];
+
+    var curr_x = s[i1 + Properties.position.x];
+    var curr_y = s[i1 + Properties.position.y];
+    var curr_z = s[i1 + Properties.position.z];
+
+    var nbCount = 0;
+
+    for(m = mStart; m<mEnd; m++, j+=Properties.maxVariables)
+    {
+        
+        var i2 = m*Properties.maxVariables;
+
+        var diff_x = Math.pow(curr_x - s[i2 + Properties.position.x], 2);
+        var diff_y = Math.pow(curr_y - s[i2 + Properties.position.y], 2);
+        var diff_z = Math.pow(curr_z - s[i2 + Properties.position.z], 2);
+        var fNb = Math.pow(flockNeighbourhood, 2);
+
+        if ((diff_x + diff_y + diff_z) <= fNb)
+        {
+            if (m != mJ)
+            {
+                vAvg_x = vAvg_x + s[i2 + Properties.velocity.x];
+                vAvg_y = vAvg_y + s[i2 + Properties.velocity.y];
+                vAvg_z = vAvg_z + s[i2 + Properties.velocity.z];
+
+                nbCount = nbCount + 1;
+            }
+        }
+    }
+    
+    vAvg_x = vAvg_x / nbCount;
+    vAvg_y = vAvg_y / nbCount;
+    vAvg_z = vAvg_z / nbCount;
+
+
+    // calculate distance of our particle from centroid
+    // apply that displacement in the opposite direction
+    var Fx = (vAvg_x - vCurr_x)/scaling;
+    var Fy = (vAvg_y - vCurr_y)/scaling;
+    var Fz = (vAvg_z - vCurr_z)/scaling;
+
+    return{
+        x: Fx,
+        y: Fy,
+        z: Fz,
+    }
+    // make our velocity closer to this velocity
+    // we can do that by accelerating in the direction of the velocity
+
+}
+
+CForcer.prototype.ruleSteerAwayObject = function(s, flockNeighbourhood, mJ, mStart, mEnd, scaling, objPosition)
+{
+    // inside the neighbourhood:
+    // calculate the centroid
+    var cen_x = objPosition.x;
+    var cen_y = objPosition.y;
+    var cen_z = objPosition.z;
+
+    var i1 = mJ*Properties.maxVariables;
+    var curr_x = s[i1 + Properties.position.x];
+    var curr_y = s[i1 + Properties.position.y];
+    var curr_z = s[i1 + Properties.position.z];
+
+    // calculate distance of our particle from object
+    // apply that displacement in the opposite direction
+    var Fx = -(cen_x - curr_x) * scaling;
+    var Fy = -(cen_y - curr_y) * scaling;
+    var Fz = -(cen_z - curr_z) * scaling;
+
+    return{
+        x: Fx,
+        y: Fy,
+        z: Fz,
+    }
+}

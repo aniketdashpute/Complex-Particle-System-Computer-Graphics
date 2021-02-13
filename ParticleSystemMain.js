@@ -58,6 +58,10 @@ function main()
     // Tornado
     g_partD = new PartSys();
 
+    // create fifth particle-system object
+    // Boids
+    g_partE = new PartSys();
+
     // Initialize Particle systems:
     
     // create a 2D bouncy-ball system where
@@ -72,6 +76,9 @@ function main()
 
     // create Tornado
     g_partD.initTornado(50);
+
+    // create Boids
+    g_partE.initBoids(100);
 
     // recursively call tick() using requestAnimationFrame
     var tick = function ()
@@ -755,6 +762,38 @@ function drawPartSysTornado()
     }
 }
 
+function drawPartSysBoids()
+{
+    g_isClear = 0;
+    if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // specify the perspective projection required for viewing
+    setProjectionMatrix(gl, programInfo);
+    // specify the modelView matrix for transforming our particle system
+    g_partE.setModelViewMatrixBoids();
+
+    if (false == bIsPaused)
+    {
+        // find current net force on each particle
+        g_partE.applyForces(g_partE.s1, g_partE.forceList);
+        // find time-derivative s1dot from s1;
+        g_partE.dotFinder(g_partE.s1dot, g_partE.s1);
+        // find s2 from s1 & related states.
+        g_partE.solver();
+        // Apply all constraints, s2 is ready!
+        g_partE.doConstraints(g_partE.limitList);
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partE.render(0);
+        // Make s2 the new current state s1.s
+        g_partE.swap();        
+    }
+    else
+    {
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partE.render(0);       
+    }
+}
+
 function drawCube(gl, buffers, programInfo)
 {
     // specify the layout of the input buffer provided to the VS
@@ -814,18 +853,20 @@ function drawScene(gl, programInfo, buffersCube, buffersGround)
     // Without clearing screen, draw ground now
     drawGround(gl, buffersGround, programInfo);
 
-    // // draw the first particle system - Bouncy Balls
+    // draw the first particle system - Bouncy Balls
     drawPartSysBouncy();
 
-    // // draw the second particle system - Spring system
+    // draw the second particle system - Spring system
     drawPartSysSpring();
 
-    // // draw the third particle system - Reeves Fire
+    // draw the third particle system - Reeves Fire
     drawPartSysReevesFire();
     
     // draw the fourth particle system - Tornado
     drawPartSysTornado();
 
+    // draw the fifth particle system - Boids
+    drawPartSysBoids();
 
 }
 
