@@ -381,9 +381,9 @@ CForcer.prototype.matchVelocity = function(s, flockNeighbourhood, mJ, mStart, mE
 
     // calculate distance of our particle from centroid
     // apply that displacement in the opposite direction
-    var Fx = (vAvg_x - vCurr_x)/scaling;
-    var Fy = (vAvg_y - vCurr_y)/scaling;
-    var Fz = (vAvg_z - vCurr_z)/scaling;
+    var Fx = (vAvg_x - vCurr_x) * scaling;
+    var Fy = (vAvg_y - vCurr_y) * scaling;
+    var Fz = (vAvg_z - vCurr_z) * scaling;
 
     return{
         x: Fx,

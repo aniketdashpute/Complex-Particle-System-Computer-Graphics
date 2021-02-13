@@ -1058,8 +1058,8 @@ PartSys.prototype.initBoids = function(count)
 
     // specify the scaling factor for all the rules of boids sytem
     this.scalingBoid = {
-        Cohesive: 2.0,
-        Repulsive: 5.0,
+        Cohesive: 0.3,
+        Repulsive: 0.3,
         Velocity: 0.5,
         Obstacle: 10.0,
     }
@@ -1170,16 +1170,16 @@ PartSys.prototype.initBoids = function(count)
         this.roundRand();
         // all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
         // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
-        this.s1[j + Properties.position.z] = 5 + 5*this.randZ;
         this.s1[j + Properties.position.x] = 5 + 5*this.randX; 
         this.s1[j + Properties.position.y] = 5 + 5*this.randY;  
+        this.s1[j + Properties.position.z] = 5 + 5*this.randZ;
         this.s1[j + Properties.position.w] =  1.0;
 
         // Now choose random initial velocities too:
         this.roundRand();
-        this.s1[j + Properties.velocity.x] =  this.INIT_VEL*(2.0*this.randX);
-        this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(+1.0+ 0.5*this.randY);
-        this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0);//1+0.5*this.randX);// + 0.2*this.randZ);
+        this.s1[j + Properties.velocity.x] =  this.INIT_VEL*(-1.0 +0.5*this.randX);
+        this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(0.5*this.randY);
+        this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.5*this.randX);// + 0.2*this.randZ);
 
         // mass, in kg.
         this.s1[j + Properties.mass] =  1.0;
@@ -1847,7 +1847,7 @@ PartSys.prototype.setModelViewMatrixTornado = function()
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(10.0, 15.0, 0.0);
+    modelViewMatrix.translate(45.0, -35.0, 0.0);
     // scale cube
     var s = 2.0;
     modelViewMatrix.scale(s, s, s);
