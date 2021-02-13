@@ -1048,7 +1048,7 @@ PartSys.prototype.initBoids = function(count)
         Cohesive:  0.5,
         Repulsive: 0.2,
         Velocity:  1.0,
-        Obstacle:  0.0,
+        Obstacle:  0.1,
     }
 
     // specify how much neighbourhood to account for while simulation

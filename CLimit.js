@@ -200,6 +200,9 @@ CLimit.prototype.printMe = function(opt_src)
         case LimitType.MatrixDisc:
             console.log("limitType: MatrixDisc");
             break;
+        case LimitType.VolumeWrap:
+            console.log("limitType: VolumeWrap");
+            break;            
         case LimitType.Distance.Anchor:
             console.log("limitType: Distance.Anchor");
             break;
