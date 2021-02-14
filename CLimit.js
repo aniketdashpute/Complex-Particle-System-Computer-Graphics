@@ -519,3 +519,35 @@ CLimit.prototype.enforceLimitVolumeWrap = function(partCount, drag, sPrev, sNow)
         s2: sNow,
     }
 }
+
+CLimit.prototype.enforceSlide = function(partCount, sPrev, sNow, PlaneParams)
+{
+    var Lx = (this.xMax - this.xMin);
+    var Ly = (this.yMax - this.yMin);
+    var Lz = (this.zMax - this.zMin);
+    console.log("Lx: " + Lx + " Ly: " + Ly + " Lz: " + Lz);
+
+    var bHasCrossedPlane = true;
+    // i==particle number; j==array index for i-th particle
+    var j = 0;
+    for(var i = 0; i < partCount; i += 1, j+= Properties.maxVariables)
+    {
+        bHasCrossedPlane = (sNow[j + Properties.position.x] > (PlaneParams.xMin)) &&
+        (sNow[j + Properties.position.x] <  (PlaneParams.xMax)) &&
+        (sNow[j + Properties.position.y] > (PlaneParams.yMin)) &&
+        (sNow[j + Properties.position.y] <  (PlaneParams.yMax)) &&
+        (sNow[j + Properties.position.z] <= (PlaneParams.z));
+
+        if (true == bHasCrossedPlane)
+        {
+            sNow[j + Properties.velocity.z] = 0;
+            sNow[j + Properties.position.z] = PlaneParams.z;
+        }
+
+    }
+
+    return{
+        s1: sPrev,
+        s2: sNow,
+    }
+}

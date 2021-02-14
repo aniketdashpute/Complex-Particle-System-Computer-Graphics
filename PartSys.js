@@ -1661,6 +1661,16 @@ PartSys.prototype.doConstraints = function(limitList)
                 console.log("default option selected");
                 break;
         }
+
+        switch(limitList[k].hitType)
+        {
+            case HitType.Slide:
+                limitList[k].enforceSlide(this.partCount, this.s1, this.s2);
+                break;
+            default:
+                console.log("default option selected");
+                break;
+        }
     }
 
 
@@ -1766,6 +1776,8 @@ PartSys.prototype.doConstraints = function(limitList)
             }
         }
     }
+
+
 }
 
 PartSys.prototype.swap = function()

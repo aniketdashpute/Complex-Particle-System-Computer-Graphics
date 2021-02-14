@@ -31,10 +31,13 @@ function main()
     programInfo = getAtrribsAndUniforms(gl);
 
     // Initialize the buffers that we will need for drawing cube
-    var buffersCube = initBuffersCube(gl);
+    buffersCube = initBuffersCube(gl);
+
+    // Initialize the buffers that will make a plane
+    buffersPlane = initBuffersPlane(gl);
 
     // Initialize the buffers that we will need for drawing ground
-    var buffersGround = initBuffersGround(gl);
+    buffersGround = initBuffersGround(gl);
 
     // Init Camera
     initCameraParams();
@@ -89,7 +92,7 @@ function main()
 		if (g_timeStep > 200) { g_timeStep = 1000 / 60; }
         
         // Draw the cube and ground
-        drawScene(gl, programInfo, buffersCube, buffersGround);
+        drawScene(gl, programInfo);
         
 		requestAnimationFrame(tick);
 	};
@@ -334,6 +337,31 @@ function setModelViewMatrixCube(gl, programInfo, currentAngle)
         modelViewMatrix.elements);
 }
 
+function setModelViewMatrixPlane(gl, programInfo)
+{
+    // create and set the model view matrix
+
+    // our viewing angle is such that the screen is x-z plane
+    // and inside screen is +y-axis
+
+    var modelViewMatrix = new Matrix4();
+    
+    modelViewMatrix.setIdentity();
+    // translate cube
+    modelViewMatrix.translate(-15.0, 15.0, 20.0);
+    // scale cube
+    var s = 1.0;
+    modelViewMatrix.scale(s, s, s);
+    // rotate cube around specified axis (ax,ay,az)
+    //modelViewMatrix.rotate(currentAngle, 0, 1, 0);
+
+    // Pass our current matrix to the vertex shaders:
+	gl.uniformMatrix4fv(
+        programInfo.uniformLocations.modelViewMatrix,
+        false,
+        modelViewMatrix.elements);
+}
+
 function setModelViewMatrixGround(gl, programInfo, currentAngle)
 {
     var modelViewMatrix = new Matrix4();
@@ -543,6 +571,48 @@ function makeCube()
     };
 }
 
+function makePlane()
+{
+    // array of vertex positions collection of (x,y,z)'s
+    const f = 0.5;
+    var vertices = new Float32Array ([
+        // Front face
+        -f, -f,  f,
+        f, -f,  f,
+        f,  f,  f,
+        -f,  f,  f,
+    ]);
+
+    var indices = new Uint16Array ([
+        0,  1,  2,      0,  2,  3,    // front
+    ]);
+
+    var faceColors = [
+        [1.0,  1.0,  1.0,  1.0],    // Front face: white
+    ];
+
+    // Convert the array of colors into a table for all the vertices.
+    var colorArray = [];
+    for (var j = 0; j < faceColors.length; ++j)
+    {
+        const c = faceColors[j];
+
+        // Repeat each color four times for the four vertices of the face
+        colorArray = colorArray.concat(c, c, c, c);
+    }
+    colors = new Float32Array (colorArray);
+    
+    // # vertices to be draw in total (count of indices)
+    var nVertices = 6;
+
+    return {
+        vertices: vertices,
+        colors: colors,
+        indices: indices,
+        numVertices: nVertices,
+    };
+}
+
 function initBuffersCube(gl)
 {
     // get the data of vertices, indices and color for a cube
@@ -587,6 +657,57 @@ function initBuffersCube(gl)
     return {
         vertex: vertexBuffer,
         vertexCount: cubeParams.numVertices,
+        numVertexAttributes: nVertexAttributes,
+        index: indexBuffer,
+        color: colorBuffer,
+        numColorAttributes: nColorAttributes,
+    };
+}
+
+function initBuffersPlane(gl)
+{
+    // get the data of vertices, indices and color for a cube
+    planeParams = makePlane();
+
+    // (x, y, z)
+    nVertexAttributes = 3;
+    // Create a buffer object for vertices
+    var vertexBuffer = gl.createBuffer();
+    if (!vertexBuffer)
+    {
+        console.log('Failed to create the vertex buffer object');
+        return -1;
+    }
+    // Bind the buffer object to target (gl.ARRAY_BUFFER = vertexBuffer)
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    // Write data into the buffer object (vertexBuffer.data = vertices)
+    gl.bufferData(gl.ARRAY_BUFFER, planeParams.vertices, gl.STATIC_DRAW);
+
+    // Create Buffer, Bind to Index Buffer, Write Data
+    var indexBuffer = gl.createBuffer();
+    if (!indexBuffer)
+    {
+        console.log('Failed to create the index buffer object');
+        return -1;
+    }
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, planeParams.indices, gl.STATIC_DRAW);
+
+    // (r, g, b, a)
+    nColorAttributes = 4;
+    // Create Buffer, Bind to Color Buffer, Write Data
+    var colorBuffer = gl.createBuffer();
+    if (!colorBuffer)
+    {
+        console.log('Failed to create the color buffer object');
+        return -1;
+    }    
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, planeParams.colors, gl.STATIC_DRAW);
+
+    return {
+        vertex: vertexBuffer,
+        vertexCount: planeParams.numVertices,
         numVertexAttributes: nVertexAttributes,
         index: indexBuffer,
         color: colorBuffer,
@@ -817,6 +938,26 @@ function drawCube(gl, buffers, programInfo)
     gl.drawElements(gl.TRIANGLES, buffers.vertexCount, type, offset);
 }
 
+function drawPlane(gl, buffers, programInfo)
+{
+    // specify the layout of the input buffer provided to the VS
+    setVertexInputLayout(gl, buffers, programInfo);
+
+    // specify the perspective projection required for viewing
+    setProjectionMatrix(gl, programInfo);
+
+    // specify the modelView matrix for transforming our cube
+    setModelViewMatrixPlane(gl, programInfo);
+
+    // specify the modelView matrix for transforming our particle system
+    //g_partE.setModelViewMatrixBoids();
+
+    // data type for indices
+    const type = gl.UNSIGNED_SHORT;
+    const offset = 0;
+    gl.drawElements(gl.TRIANGLES, buffers.vertexCount, type, offset);
+}
+
 function drawGround(gl, buffers, programInfo)
 {
     // specify the layout of the input buffer provided to the VS
@@ -837,7 +978,7 @@ function drawGround(gl, buffers, programInfo)
 	gl.drawArrays(gl.LINES, nFirst, buffers.vertexCount);
 }
 
-function drawScene(gl, programInfo, buffersCube, buffersGround)
+function drawScene(gl, programInfo)
 {
     // specify the colour that we want for clearing
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
@@ -854,6 +995,9 @@ function drawScene(gl, programInfo, buffersCube, buffersGround)
 
     // Without clearing screen, draw ground now
     drawGround(gl, buffersGround, programInfo);
+
+    // draw the plane used for sliding particles
+    drawPlane(gl, buffersPlane, programInfo);
 
     // draw the first particle system - Bouncy Balls
     drawPartSysBouncy();
