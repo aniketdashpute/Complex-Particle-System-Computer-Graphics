@@ -65,6 +65,10 @@ function main()
     // Boids
     g_partE = new PartSys();
 
+    // create sizth particle-system object
+    // Falling Particles
+    g_partF = new PartSys();
+
     // Initialize Particle systems:
     
     // create a 2D bouncy-ball system where
@@ -82,6 +86,9 @@ function main()
 
     // create Boids
     g_partE.initBoids(100);
+
+    // create particles falling on plane
+    g_partF.initFallingParts(50);
 
     // recursively call tick() using requestAnimationFrame
     var tick = function ()
@@ -574,13 +581,14 @@ function makeCube()
 function makePlane()
 {
     // array of vertex positions collection of (x,y,z)'s
-    const f = 0.5;
+    const f = 7.0;
+    const fz = -0.25;
     var vertices = new Float32Array ([
         // Front face
-        -f, -f,  f,
-        f, -f,  f,
-        f,  f,  f,
-        -f,  f,  f,
+        -f,  -f,   fz,
+         f,  -f,   fz,
+         f,   f,   fz,
+        -f,   f,   fz,
     ]);
 
     var indices = new Uint16Array ([
@@ -915,6 +923,38 @@ function drawPartSysBoids()
     }
 }
 
+function drawPartSysFallingParts()
+{
+    g_isClear = 0;
+    if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // specify the perspective projection required for viewing
+    setProjectionMatrix(gl, programInfo);
+    // specify the modelView matrix for transforming our particle system
+    g_partF.setModelViewMatrixFallingParts();
+
+    if (false == bIsPaused)
+    {
+        // find current net force on each particle
+        g_partF.applyForces(g_partF.s1, g_partF.forceList);
+        // find time-derivative s1dot from s1;
+        g_partF.dotFinder(g_partF.s1dot, g_partF.s1);
+        // find s2 from s1 & related states.
+        g_partF.solver();
+        // Apply all constraints, s2 is ready!
+        g_partF.doConstraints(g_partF.limitList);
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partF.render(0);
+        // Make s2 the new current state s1.s
+        g_partF.swap();        
+    }
+    else
+    {
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partF.render(0);       
+    }
+}
+
 function drawCube(gl, buffers, programInfo)
 {
     // specify the layout of the input buffer provided to the VS
@@ -947,10 +987,10 @@ function drawPlane(gl, buffers, programInfo)
     setProjectionMatrix(gl, programInfo);
 
     // specify the modelView matrix for transforming our cube
-    setModelViewMatrixPlane(gl, programInfo);
+    //setModelViewMatrixPlane(gl, programInfo);
 
     // specify the modelView matrix for transforming our particle system
-    //g_partE.setModelViewMatrixBoids();
+    g_partE.setModelViewMatrixFallingParts();
 
     // data type for indices
     const type = gl.UNSIGNED_SHORT;
@@ -1014,6 +1054,8 @@ function drawScene(gl, programInfo)
     // draw the fifth particle system - Boids
     drawPartSysBoids();
 
+    // draw the sixth particle system - Falling Particles
+    drawPartSysFallingParts();
 }
 
 

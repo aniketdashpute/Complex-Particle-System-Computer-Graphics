@@ -1220,6 +1220,194 @@ PartSys.prototype.initBoids = function(count)
     gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
 }
 
+PartSys.prototype.initFallingParts = function(count)
+{
+    console.log('PartSys.FallingParts() initializing...');
+
+    this.name = "Falling Particles System";
+
+    // Create all state-variables
+    this.partCount = count;
+    this.s1 =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.s2 =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.s1dot = new Float32Array(this.partCount * Properties.maxVariables);  
+    // Float32Array objects are zero-filled by default
+
+
+    // Create force-causing objects:
+    // earth gravity for all particles:
+    var fTmp = new CForcer();
+    fTmp.forceType = Forces.EarthGravity;
+    // set it to affect ALL particles
+    fTmp.targFirst = 0;
+    // (negative value means ALL particles)
+    fTmp.partCount = -1;
+    // (and IGNORE all other Cforcer members...)
+    // append this to the forceList array of force-causing objects
+    this.forceList.push(fTmp);
+
+    // Report:
+    console.log("PartSys.initBouncy2D() created PartSys.forceList[] array of ");
+    console.log("\t\t", this.forceList.length, "CForcer objects:");
+    for(i=0; i<this.forceList.length; i++)
+    {
+        console.log("CForceList[",i,"]");
+        this.forceList[i].printMe();
+    }
+
+
+
+
+    // Create constraint-causing objects:
+    var cTmp = new CLimit();
+    // set how particles 'bounce' from its surface
+    cTmp.hitType = HitType.Slide;
+    // confine particles inside axis-aligned rectangular volume
+    cTmp.limitType = LimitType.VolumeWrap;
+    // applies to ALL particles; starting at 0
+    cTmp.targFirst = 0;
+    // through all the rest of them
+    cTmp.partCount = -1;
+    // box extent:  +/- 10.0 box at origin
+    cTmp.xMin = this.xMin = -12.0;
+    cTmp.xMax = this.xMax = 12.0;
+    cTmp.yMin = this.yMin = -12.0;
+    cTmp.yMax = this.yMax = 12.0;
+    cTmp.zMin = this.zMin = -12.0;
+    cTmp.zMax = this.zMax = 12.0;
+
+    // specify the scaling factor for all the rules of boids sytem
+    this.PlaneParams = {
+        xMin: -7.0,
+        xMax: +7.0,
+        yMin: -7.0,
+        yMax: +7.0,
+        z: 0.0,
+    }
+    // (and IGNORE all other CLimit members...)
+    // append this to array of constraint-causing objects
+    this.limitList.push(cTmp);
+
+    // Report:
+    console.log("PartSys.initBouncy2D() created PartSys.limitList[] array of ");
+    console.log("\t\t", this.limitList.length, "CLimit objects.");
+    for(i=0; i<this.limitList.length; i++)
+    {
+        console.log("CLimitList[",i,"]");
+        this.limitList[i].printMe();
+    }
+
+
+    // initial velocity in meters/sec.
+    // adjust by ++Start, --Start buttons. Original value 
+    // was 0.15 meters per timestep; multiply by 60 to get meters per second.
+    this.INIT_VEL =  0.15 * 60.0;
+
+    // units-free air-drag (scales velocity); adjust by d/D keys
+    this.drag = 0.985;
+    // gravity's acceleration(meter/sec^2); adjust by g/G keys
+    this.grav = 9.832;
+    // units-free 'Coefficient of Restitution'
+    this.resti = 1.0;
+
+
+
+
+    // Initialize Particle System Controls:
+
+    // Master Control: 0=reset; 1= pause; 2=step; 3=run
+    this.runMode =  3;
+    // adjust by s/S keys
+    this.solvType = Solver.Euler;
+    // floor-bounce constraint type:
+    // ==0 for velocity-reversal, as in all previous versions
+    // ==1 for Chapter 3's collision resolution method, which uses
+    // an 'impulse' to cancel any velocity boost caused by falling below the floor
+    this.bounceType = -1;
+
+
+
+    
+    // Create and fill VBO with state s1 contents:
+
+    // i = particle number; j = array index for i-th particle
+    var j = 0;
+    for (var i = 0; i < this.partCount; i += 1, j+= Properties.maxVariables)
+    {
+        // set this.randX,randY,randZ to random location in
+        // a 3D unit sphere centered at the origin
+        this.roundRand();
+        // all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
+        // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
+        this.s1[j + Properties.position.x] = 2*this.randX; 
+        this.s1[j + Properties.position.y] = 2*this.randY;  
+        this.s1[j + Properties.position.z] = 5 + 2*this.randZ;
+        this.s1[j + Properties.position.w] =  1.0;
+
+        // Now choose random initial velocities too:
+        this.roundRand();
+        this.s1[j + Properties.velocity.x] =  this.INIT_VEL*(0.8*this.randX);
+        this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(0.8*this.randY);
+        this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.0);// + 1.5*this.randZ);
+
+        // mass, in kg.
+        this.s1[j + Properties.mass] =  1.0;
+        // on-screen diameter, in pixels
+        this.s1[j + Properties.diameter] =  2.0 + 10*Math.random();
+        this.s1[j + Properties.renderMode] = 0.0;
+        this.s1[j + Properties.age] = 50 + 50*Math.random();
+    }
+    // COPY contents of state-vector s1 to s2
+    this.s2.set(this.s1);
+
+
+
+
+    // 'float' size, in bytes.
+    this.FSIZE = this.s1.BYTES_PER_ELEMENT;
+
+    // Create, Bind, Write
+
+    // Create a vertex buffer object (VBO) in the graphics hardware: get its ID# 
+    this.vboID = gl.createBuffer();
+    if (!this.vboID)
+    {
+        console.log('PartSys.init() Failed to create the VBO object in the GPU');
+        return -1;
+    }
+
+    // Bind buffer
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.vboID);
+
+    // Write data
+    gl.bufferData(gl.ARRAY_BUFFER, this.s1, gl.DYNAMIC_DRAW);
+
+    // Tell GLSL to fill the 'a_Position' attribute variable for each shader
+
+    // # of values in this attrib, ex: (x,y,z,w) => 4
+    var nAttributes = 4;
+    // data type (usually gl.FLOAT)
+    var dataType = gl.FLOAT;
+    // use integer normalizing? (usually false)
+    var bNormalize = false;
+    // Stride: #bytes from 1st stored value to next 
+    var stride = Properties.maxVariables * this.FSIZE;
+    // Offiset; #bytes from start of buffer to the 1st attrib value to be used
+    var offset = Properties.position.x * this.FSIZE;
+
+    // specify the layout of the vertex buffer
+    gl.vertexAttribPointer(
+        programInfo.attribLocations.vertexPosition, 
+        nAttributes,
+        dataType, 
+        bNormalize,
+        stride,
+        offset);                                       
+                                
+    // Enable the assignment to a_Position variable
+    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+}
+
 PartSys.prototype.applyForces = function(s, fList)
 {
     // Clear the force-accumulator vector for each particle in state-vector 's', 
@@ -1665,7 +1853,7 @@ PartSys.prototype.doConstraints = function(limitList)
         switch(limitList[k].hitType)
         {
             case HitType.Slide:
-                limitList[k].enforceSlide(this.partCount, this.s1, this.s2);
+                limitList[k].enforceSlide(this.partCount, this.s1, this.s2, this.PlaneParams);
                 break;
             default:
                 console.log("default option selected");
@@ -1804,6 +1992,29 @@ PartSys.prototype.roundRand = function()
     }
     // is x,y,z outside sphere? try again!
     while (this.randX*this.randX + this.randY*this.randY + this.randZ*this.randZ >= 1.0);
+}
+
+PartSys.prototype.setModelViewMatrixFallingParts = function()
+{
+    // create and set the model view matrix
+
+    // our viewing angle is such that the screen is x-z plane
+    // and inside screen is +y-axis
+
+    var modelViewMatrix = new Matrix4();
+    
+    modelViewMatrix.setIdentity();
+    // translate cube
+    modelViewMatrix.translate(-40.0, 40.0, 10.0);
+    // scale cube
+    var s = 1.0;
+    modelViewMatrix.scale(s, s, s);
+
+    // Pass our current matrix to the vertex shaders:
+	gl.uniformMatrix4fv(
+        programInfo.uniformLocations.modelViewMatrix,
+        false,
+        modelViewMatrix.elements);
 }
 
 PartSys.prototype.setModelViewMatrixBoids = function()
