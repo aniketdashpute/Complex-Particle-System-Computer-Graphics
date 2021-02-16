@@ -572,10 +572,67 @@ CLimit.prototype.enforceAnchor = function(sPrev, sNow)
         sNow[j + Properties.velocity.x] = 0;
         sNow[j + Properties.velocity.y] = 0;
         sNow[j + Properties.velocity.z] = 0;
+
+        sNow[j + Properties.force.x] = 0;
+        sNow[j + Properties.force.y] = 0;
+        sNow[j + Properties.force.z] = 0;
     }
 
     return{
         s1: sPrev,
         s2: sNow,
     }
+}
+
+CLimit.prototype.enforceLimitBox = function(partCount, sPrev, sNow)
+{
+    var j = 0;
+    for(var i = 0; i < partCount; i += 1, j+= Properties.maxVariables)
+    {
+        var insideXNow = ((sNow[j + Properties.position.x] - this.xMin) * (sNow[j + Properties.position.x] - this.xMax)) < 0;
+        var insideYNow = ((sNow[j + Properties.position.y] - this.yMin) * (sNow[j + Properties.position.y] - this.yMax)) < 0;
+        var insideZNow = ((sNow[j + Properties.position.z] - this.zMin) * (sNow[j + Properties.position.z] - this.zMax)) < 0;
+        
+        var insideXPrev = ((sPrev[j + Properties.position.x] - this.xMin) * (sPrev[j + Properties.position.x] - this.xMax)) < 0;
+        var insideYPrev = ((sPrev[j + Properties.position.y] - this.yMin) * (sPrev[j + Properties.position.y] - this.yMax)) < 0;
+        var insideZPrev = ((sPrev[j + Properties.position.z] - this.zMin) * (sPrev[j + Properties.position.z] - this.zMax)) < 0;
+
+        if (insideXNow && insideYNow && insideZNow)
+        {
+            if (insideXNow && !insideXPrev)
+            {
+                sNow[j + Properties.velocity.x] = -sNow[j + Properties.velocity.x];
+                if (sPrev[j + Properties.position.x] < this.xMin) sNow[j + Properties.position.x] = (this.xMin-0.1);
+                else if (sPrev[j + Properties.position.x] > this.xMin) sNow[j + Properties.position.x] = (this.xMax+0.1);
+            }
+            if (insideYNow && !insideYPrev)
+            {
+                sNow[j + Properties.velocity.y] = -sNow[j + Properties.velocity.y];
+                if (sPrev[j + Properties.position.y] < this.yMin) sNow[j + Properties.position.y] = (this.yMin-0.1);
+                else if (sPrev[j + Properties.position.y] > this.yMin) sNow[j + Properties.position.y] = (this.yMax+0.1);
+            }
+            if (insideZNow && !insideZPrev)
+            {
+                sNow[j + Properties.velocity.z] = -sNow[j + Properties.velocity.z];
+                if (sPrev[j + Properties.position.z] < this.zMin) sNow[j + Properties.position.z] = (this.zMin-0.1);
+                else if (sPrev[j + Properties.position.z] > this.zMin) sNow[j + Properties.position.z] = (this.zMax+0.1);
+            }
+        }
+    
+        /*// the floor and walls need this position-enforcing constraint as well
+        // floor
+        if(sNow[j + Properties.position.z] < (this.zMin+0.1)) sNow[j + Properties.position.z] = (this.zMin+0.1);
+        // ceiling
+        else if (sNow[j + Properties.position.z] >  (this.zMax-0.1)) sNow[j + Properties.position.z] =  (this.zMax-0.1);
+
+        // near wall
+        if (sNow[j + Properties.position.y] < (this.yMin+0.1)) sNow[j + Properties.position.y] = (this.yMin+0.1);
+        // far wall
+        else if (sNow[j + Properties.position.y] >  (this.yMax-0.1)) sNow[j + Properties.position.y] =  (this.yMax-0.1);
+        
+        // left wall
+        if (sNow[j + Properties.position.x] < (this.xMin+0.1)) sNow[j + Properties.position.x] = (this.xMin+0.1);
+        // right wall
+        else if (sNow[j + Properties.position.x] >  (this.xMax-0.1)) sNow[j + Properties.position.x] =  (this.xMax-0.1);*/
+    }    
 }

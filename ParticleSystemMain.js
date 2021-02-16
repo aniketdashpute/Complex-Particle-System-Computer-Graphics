@@ -32,6 +32,7 @@ function main()
 
     // Initialize the buffers that we will need for drawing cube
     buffersCube = initBuffersCube(gl);
+    buffersCube2 = initBuffersCube2(gl);
 
     // Initialize the buffers that will make a plane
     buffersPlane = initBuffersPlane(gl);
@@ -342,6 +343,37 @@ function setModelViewMatrixCube(gl, programInfo, currentAngle)
         modelViewMatrix.elements);
 }
 
+function setModelViewMatrixCube2(gl, programInfo, currentAngle)
+{
+    // create and set the model view matrix
+
+    var modelViewMatrix = new Matrix4();
+    
+    modelViewMatrix.setIdentity();
+
+
+    // scale system
+    var s = 2.0;
+    modelViewMatrix.scale(s, s, s);
+    // translate cube to required position
+    //modelViewMatrix.translate(1.0, 1.0, 1.0);
+
+    // apply the Bouncy ball transformations:
+    // translate system
+    modelViewMatrix.translate(0.0, 2.5, 0.0);
+
+    modelViewMatrix.translate(1.0, 1.5, 1.5);
+    // scale cube
+    var s = 0.5;
+    modelViewMatrix.scale(1.0, s, s);
+
+    // Pass our current matrix to the vertex shaders:
+	gl.uniformMatrix4fv(
+        this.programInfo.uniformLocations.modelViewMatrix,
+        false,
+        modelViewMatrix.elements);
+}
+
 function setModelViewMatrixPlane(gl, programInfo)
 {
     // create and set the model view matrix
@@ -574,6 +606,83 @@ function makeCube()
     };
 }
 
+function makeCube2()
+{
+    // array of vertex positions collection of (x,y,z)'s
+    const f = 1.0;
+    var vertices = new Float32Array ([
+        // Front face
+        -f, -f,  f,
+        f, -f,  f,
+        f,  f,  f,
+        -f,  f,  f,
+
+        // Back face
+        -f, -f, -f,
+        -f,  f, -f,
+        f,  f, -f,
+        f, -f, -f,
+
+        // Top face
+        -f,  f, -f,
+        -f,  f,  f,
+        f,  f,  f,
+        f,  f, -f,
+
+        // Bottom face
+        -f, -f, -f,
+        f, -f, -f,
+        f, -f,  f,
+        -f, -f,  f,
+
+        // Right face
+        f, -f, -f,
+        f,  f, -f,
+        f,  f,  f,
+        f, -f,  f,
+
+        // Left face
+        -f, -f, -f,
+        -f, -f,  f,
+        -f,  f,  f,
+        -f,  f, -f,
+    ]);
+
+    var indices = new Uint16Array ([
+        0,  1,  2,      0,  2,  3,    // front
+        4,  5,  6,      4,  6,  7,    // back
+        8,  9,  10,     8,  10, 11,   // top
+        12, 13, 14,     12, 14, 15,   // bottom
+        16, 17, 18,     16, 18, 19,   // right
+        20, 21, 22,     20, 22, 23,   // left
+    ]);
+
+    var faceColors = [
+        [1.0,  1.0,  1.0,  1.0],    // face: white
+    ];
+
+    // Convert the array of colors into a table for all the vertices.
+    var colorArray = [];
+    for (var j = 0; j < 6*faceColors.length; ++j)
+    {
+        const c = faceColors[j];
+
+        // Repeat each color four times for the four vertices of the face
+        colorArray = colorArray.concat(c, c, c, c);
+    }
+    colors = new Float32Array (colorArray);
+    
+    // # vertices to be draw in total (count of indices)
+    var nVertices = 36;
+
+    return {
+        vertices: vertices,
+        colors: colors,
+        indices: indices,
+        numVertices: nVertices,
+    };
+}
+
 function makePlane()
 {
     // array of vertex positions collection of (x,y,z)'s
@@ -621,6 +730,57 @@ function initBuffersCube(gl)
 {
     // get the data of vertices, indices and color for a cube
     cubeParams = makeCube();
+
+    // (x, y, z)
+    nVertexAttributes = 3;
+    // Create a buffer object for vertices
+    var vertexBuffer = gl.createBuffer();
+    if (!vertexBuffer)
+    {
+        console.log('Failed to create the vertex buffer object');
+        return -1;
+    }
+    // Bind the buffer object to target (gl.ARRAY_BUFFER = vertexBuffer)
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    // Write data into the buffer object (vertexBuffer.data = vertices)
+    gl.bufferData(gl.ARRAY_BUFFER, cubeParams.vertices, gl.STATIC_DRAW);
+
+    // Create Buffer, Bind to Index Buffer, Write Data
+    var indexBuffer = gl.createBuffer();
+    if (!indexBuffer)
+    {
+        console.log('Failed to create the index buffer object');
+        return -1;
+    }
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, cubeParams.indices, gl.STATIC_DRAW);
+
+    // (r, g, b, a)
+    nColorAttributes = 4;
+    // Create Buffer, Bind to Color Buffer, Write Data
+    var colorBuffer = gl.createBuffer();
+    if (!colorBuffer)
+    {
+        console.log('Failed to create the color buffer object');
+        return -1;
+    }    
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, cubeParams.colors, gl.STATIC_DRAW);
+
+    return {
+        vertex: vertexBuffer,
+        vertexCount: cubeParams.numVertices,
+        numVertexAttributes: nVertexAttributes,
+        index: indexBuffer,
+        color: colorBuffer,
+        numColorAttributes: nColorAttributes,
+    };
+}
+
+function initBuffersCube2(gl)
+{
+    // get the data of vertices, indices and color for a cube
+    cubeParams = makeCube2();
 
     // (x, y, z)
     nVertexAttributes = 3;
@@ -982,6 +1142,31 @@ function drawCube(gl, buffers, programInfo)
     gl.drawElements(gl.TRIANGLES, buffers.vertexCount, type, offset);
 }
 
+function drawCube2(gl, buffers, programInfo)
+{
+    // use the given programInfo
+    gl.useProgram(programInfo.program);
+    gl.program = programInfo.program;
+
+    // specify the layout of the input buffer provided to the VS
+    setVertexInputLayout(gl, buffers, programInfo);
+
+    // specify the perspective projection required for viewing
+    setProjectionMatrix(gl, programInfo);
+
+    // amount of angle to be rotated in 1000ms
+    angleQuant = 90;
+    // set the angle at which we want our cube now
+    currentAngle += (g_timeStep * angleQuant)/1000;
+    // specify the modelView matrix for transforming our cube
+    setModelViewMatrixCube2(gl, programInfo, currentAngle);
+
+    // data type for indices
+    const type = gl.UNSIGNED_SHORT;
+    const offset = 0;
+    gl.drawElements(gl.TRIANGLES, buffers.vertexCount, type, offset);
+}
+
 function drawPlane(gl, buffers, programInfo)
 {
     // use the given programInfo
@@ -1039,11 +1224,12 @@ function drawScene(gl, programInfo)
     // Clear the canvas before we start drawing on it.
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    // Draw cube first
-    drawCube(gl, buffersCube, programInfo);
-
-    // Without clearing screen, draw ground now
+    // Draw ground first
     drawGround(gl, buffersGround, programInfo);
+
+    // Without clearing screen, draw cubes now
+    drawCube(gl, buffersCube, programInfo);
+    drawCube2(gl, buffersCube2, programInfo);
 
     // draw the plane used for sliding particles
     drawPlane(gl, buffersPlane, programInfo);

@@ -35,8 +35,10 @@ const Forces = {
     Tornado: 10,
     // Flocking Behaviour for boids:
     Flocking: 11,
+    // Anchoring Force:
+    Anchor: 12,
     // 'max' is always the LAST name in our list
-    MaxValue: 12,
+    MaxValue: 13,
 }
 
 function CForcer()

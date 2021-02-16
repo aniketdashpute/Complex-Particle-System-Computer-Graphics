@@ -129,7 +129,10 @@ PartSys.prototype.initBouncy2D = function(count)
     this.partCount = count;
     this.s1 =    new Float32Array(this.partCount * Properties.maxVariables);
     this.s2 =    new Float32Array(this.partCount * Properties.maxVariables);
-    this.s1dot = new Float32Array(this.partCount * Properties.maxVariables);  
+    this.s1dot = new Float32Array(this.partCount * Properties.maxVariables);
+    // for midpoint solver:
+    this.sM =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.sMdot = new Float32Array(this.partCount * Properties.maxVariables);
     // Float32Array objects are zero-filled by default
 
 
@@ -188,6 +191,26 @@ PartSys.prototype.initBouncy2D = function(count)
     cTmp.xMin = 0.0; cTmp.xMax = 2.0;
     cTmp.yMin = 0.0; cTmp.yMax = 2.0;
     cTmp.zMin = 0.0; cTmp.zMax = 2.0;
+    // bouncyness: coeff. of restitution.
+    cTmp.Kresti = 1.0;
+    // (and IGNORE all other CLimit members...)
+    // append this to array of constraint-causing objects
+    this.limitList.push(cTmp);
+
+    // Create constraint-causing objects:
+    var cTmp = new CLimit();
+    // set how particles 'bounce' from its surface
+    cTmp.hitType = -1;//HitType.BounceVelocityReversal;
+    // confine particles inside axis-aligned rectangular volume
+    cTmp.limitType = LimitType.Box;
+    // applies to ALL particles; starting at 0
+    cTmp.targFirst = 0;
+    // through all the rest of them
+    cTmp.partCount = -1;
+    // box extent:
+    cTmp.xMin = 0.0; cTmp.xMax = 2.0;
+    cTmp.yMin = 1.0; cTmp.yMax = 2.0;
+    cTmp.zMin = 1.0; cTmp.zMax = 2.0;
     // bouncyness: coeff. of restitution.
     cTmp.Kresti = 1.0;
     // (and IGNORE all other CLimit members...)
@@ -305,13 +328,17 @@ PartSys.prototype.initCloth = function(count1, count2)
     this.s1 =    new Float32Array(this.partCount * Properties.maxVariables);
     this.s2 =    new Float32Array(this.partCount * Properties.maxVariables);
     this.s1dot = new Float32Array(this.partCount * Properties.maxVariables);  
+    // for midpoint solver:
+    this.sM =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.sMdot = new Float32Array(this.partCount * Properties.maxVariables);
+    // Float32Array objects are zero-filled by default
+
 
     // for this Cloth only:
     var K_spring = 40.0
     var K_springDamp = 3.0;
     var K_restLength = 1.0;
 
-    // Float32Array objects are zero-filled by default
 
     // Create force-causing objects:
     var fTmp;
@@ -440,7 +467,7 @@ PartSys.prototype.initCloth = function(count1, count2)
     // Viscous Drag
     fTmp.forceType = Forces.Drag;
     // in Euler solver, scales velocity by 0.85
-    fTmp.Kdrag = 0.15;
+    fTmp.Kdrag = 0.1;
     // apply it to ALL particles
     fTmp.targFirst = 0;
     // negative value means ALL particles
@@ -457,6 +484,20 @@ PartSys.prototype.initCloth = function(count1, count2)
     fTmp.targFirst = 0;
     // (negative value means ALL particles)
     fTmp.partCount = count1 * count2;
+    // (and IGNORE all other Cforcer members...)
+    // append this to the forceList array of force-causing objects
+    this.forceList.push(fTmp);
+
+    // Anchor force!
+    p1 = count1 * count2;
+    // create spring force
+    fTmp = new CForcer();
+    // Two particle spring system:
+    fTmp.forceType = Forces.Anchor;
+    // first particle number for applying force
+    fTmp.targFirst = p1;
+    // till which particle number
+    fTmp.targCount = p1 + 2;
     // (and IGNORE all other Cforcer members...)
     // append this to the forceList array of force-causing objects
     this.forceList.push(fTmp);
@@ -491,7 +532,7 @@ PartSys.prototype.initCloth = function(count1, count2)
     var boxLen = 20.0;
     cTmp.xMin = -boxLen; cTmp.xMax = boxLen;
     cTmp.yMin = -2 * boxLen; cTmp.yMax = 2 *boxLen;
-    cTmp.zMin = -boxLen; cTmp.zMax = boxLen;
+    cTmp.zMin = -0.5*boxLen; cTmp.zMax = boxLen;
     // bouncyness: coeff. of restitution.
     cTmp.Kresti = 0.9;
     // (and IGNORE all other CLimit members...)
@@ -546,7 +587,7 @@ PartSys.prototype.initCloth = function(count1, count2)
     // Master Control: 0=reset; 1= pause; 2=step; 3=run
     this.runMode =  3;
     // adjust by s/S keys
-    this.solvType = Solver.Euler;
+    this.solvType = Solver.Midpoint;
     // floor-bounce constraint type:
     // ==0 for velocity-reversal, as in all previous versions
     // ==1 for Chapter 3's collision resolution method, which uses
@@ -659,6 +700,9 @@ PartSys.prototype.initReevesFire = function(count)
     this.s2 =    new Float32Array(this.partCount * Properties.maxVariables);
     this.s1dot = new Float32Array(this.partCount * Properties.maxVariables);  
     // Float32Array objects are zero-filled by default
+    // for midpoint solver:
+    this.sM =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.sMdot = new Float32Array(this.partCount * Properties.maxVariables);
 
     // use fountain like effect for Reeves Fire
     this.isFountain = true;
@@ -834,6 +878,9 @@ PartSys.prototype.initTornado = function(count)
     this.s2 =    new Float32Array(this.partCount * Properties.maxVariables);
     this.s1dot = new Float32Array(this.partCount * Properties.maxVariables);  
     // Float32Array objects are zero-filled by default
+    // for midpoint solver:
+    this.sM =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.sMdot = new Float32Array(this.partCount * Properties.maxVariables);
 
     // use fountain like effect for Tornado (vanish particles after some time)
     this.isTornado = true;
@@ -955,7 +1002,7 @@ PartSys.prototype.initTornado = function(count)
     // Master Control: 0=reset; 1= pause; 2=step; 3=run
     this.runMode =  3;
     // adjust by s/S keys
-    this.solvType = Solver.Euler;
+    this.solvType = Solver.Midpoint;
     // floor-bounce constraint type:
     // ==0 for velocity-reversal, as in all previous versions
     // ==1 for Chapter 3's collision resolution method, which uses
@@ -1034,8 +1081,10 @@ PartSys.prototype.initBoids = function(count)
     this.s1 =    new Float32Array(this.partCount * Properties.maxVariables);
     this.s2 =    new Float32Array(this.partCount * Properties.maxVariables);
     this.s1dot = new Float32Array(this.partCount * Properties.maxVariables);  
+    // for midpoint solver:
+    this.sM =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.sMdot = new Float32Array(this.partCount * Properties.maxVariables);
     // Float32Array objects are zero-filled by default
-
 
     // Create force-causing objects:
     var fTmp = new CForcer();
@@ -1140,7 +1189,7 @@ PartSys.prototype.initBoids = function(count)
     // Master Control: 0=reset; 1= pause; 2=step; 3=run
     this.runMode =  3;
     // adjust by s/S keys
-    this.solvType = Solver.Euler;
+    this.solvType = Solver.Midpoint;
     // floor-bounce constraint type:
     // ==0 for velocity-reversal, as in all previous versions
     // ==1 for Chapter 3's collision resolution method, which uses
@@ -1219,6 +1268,9 @@ PartSys.prototype.initFallingParts = function(count)
     this.s1 =    new Float32Array(this.partCount * Properties.maxVariables);
     this.s2 =    new Float32Array(this.partCount * Properties.maxVariables);
     this.s1dot = new Float32Array(this.partCount * Properties.maxVariables);  
+    // for midpoint solver:
+    this.sM =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.sMdot = new Float32Array(this.partCount * Properties.maxVariables);    
     // Float32Array objects are zero-filled by default
 
 
@@ -1306,7 +1358,7 @@ PartSys.prototype.initFallingParts = function(count)
     // Master Control: 0=reset; 1= pause; 2=step; 3=run
     this.runMode =  3;
     // adjust by s/S keys
-    this.solvType = Solver.Euler;
+    this.solvType = Solver.Midpoint;
     // ==0 for velocity-reversal, as in all previous versions
     // floor-bounce constraint type:
     // ==1 for Chapter 3's collision resolution method, which uses
@@ -1359,6 +1411,8 @@ PartSys.prototype.initFallingParts = function(count)
     // required for the particle system rendering
     this.createVertexAndColorBuffers();
 }
+
+/// utility functions:
 
 PartSys.prototype.getProgramInfo = function()
 {
@@ -1484,6 +1538,9 @@ PartSys.prototype.updateVBOContents = function()
     // will be null if no index buffer exists
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.index);
 }
+
+/// end of utility functions
+
 
 PartSys.prototype.applyForces = function(s, fList)
 {
@@ -1727,6 +1784,17 @@ PartSys.prototype.applyForces = function(s, fList)
             case Forces.Flocking:
                 fList[k].applyBoidForces(s, this.flockNb, m, mmax, this.scalingBoid, this.obstPos);
                 break;
+            case Forces.Anchor:
+                // state var array index for particle # m
+                var j = m * Properties.maxVariables;
+                for(; m<mmax; m++, j += Properties.maxVariables)
+                {
+                    // make the total force on these particles to be zero
+                    s[j + Properties.force.x] = 0;
+                    s[j + Properties.force.y] = 0;
+                    s[j + Properties.force.z] = 0;
+                }
+                break;
             default:
                 console.log("!!!ApplyForces() fList[",k,"] invalid forceType:", fList[k].forceType);
                 break;
@@ -1831,7 +1899,20 @@ PartSys.prototype.solver = function()
                 this.s2[n] = this.s1[n] + this.s1dot[n] * (g_timeStep * 0.001); 
             }
             break;
-
+        case Solver.Midpoint:
+            // first calculate sM (using half-step)
+            for(var n = 0; n < this.s1.length; n++)
+            {
+                this.sM[n] = this.s1[n] + this.s1dot[n] * (g_timeStep/2.0 * 0.001);
+            }
+            // now calculate sMdot using dotFinder
+            this.dotFinder(this.sMdot, this.sM);
+            // now get s2 with full-step
+            for(var n = 0; n < this.s1.length; n++)
+            {
+                this.s2[n] = this.s1[n] + this.sMdot[n] * (g_timeStep * 0.001);
+            }
+            break;
         // IMPLICIT or 'reverse time' solver
         // This category of solver is often better, more stable, but lossy
         case Solver.OldGood:
@@ -1888,6 +1969,7 @@ PartSys.prototype.doConstraints = function(limitList)
             case LimitType.Disc:
                 break;
             case LimitType.Box:
+                limitList[k].enforceLimitBox(this.partCount, this.s1, this.s2);
                 break;
             case LimitType.MatrixVolume:
                 break;
