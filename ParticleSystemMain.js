@@ -330,16 +330,14 @@ function setModelViewMatrixCube(gl, programInfo, currentAngle)
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(0.0, 0.0, 0.0);
+    modelViewMatrix.translate(0.0, 70.0, 40.0);
     // scale cube
-    var s = 0.5;
+    var s = 2.0;
     modelViewMatrix.scale(s, s, s);
-    // rotate cube around specified axis (ax,ay,az)
-    modelViewMatrix.rotate(currentAngle, 0, 1, 0);
 
     // Pass our current matrix to the vertex shaders:
 	gl.uniformMatrix4fv(
-        programInfo.uniformLocations.modelViewMatrix,
+        this.programInfo.uniformLocations.modelViewMatrix,
         false,
         modelViewMatrix.elements);
 }
@@ -355,16 +353,14 @@ function setModelViewMatrixPlane(gl, programInfo)
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(-15.0, 15.0, 20.0);
+    modelViewMatrix.translate(-40.0, 40.0, 10.0);
     // scale cube
     var s = 1.0;
     modelViewMatrix.scale(s, s, s);
-    // rotate cube around specified axis (ax,ay,az)
-    //modelViewMatrix.rotate(currentAngle, 0, 1, 0);
 
     // Pass our current matrix to the vertex shaders:
 	gl.uniformMatrix4fv(
-        programInfo.uniformLocations.modelViewMatrix,
+        this.programInfo.uniformLocations.modelViewMatrix,
         false,
         modelViewMatrix.elements);
 }
@@ -460,10 +456,10 @@ function makeGround()
     // create and fill color array for the x-y lines
     
     // green color for Y-lines
-    var cColor1 = [0.0, 1.0, 0.0, 1.0];
+    var cColor1 = [0.3, 0.3, 0.3, 1.0];
 
     // yellow color for X-lines
-    var cColor2 = [1.0, 1.0, 0.0, 1.0];
+    var cColor2 = [0.25, 0.25, 0.25, 1.0];
 
     // (r,g,b,a)
     numAttribs = 4;
@@ -596,7 +592,7 @@ function makePlane()
     ]);
 
     var faceColors = [
-        [1.0,  1.0,  1.0,  1.0],    // Front face: white
+        [0.73, 0.31, 0.1, 1.0],    // Front face: white
     ];
 
     // Convert the array of colors into a table for all the vertices.
@@ -768,8 +764,9 @@ function drawPartSysBouncy()
     g_isClear = 0;
     if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
 
+    var programInfoA = g_partA.getProgramInfo();
     // specify the perspective projection required for viewing
-    setProjectionMatrix(gl, programInfo);
+    setProjectionMatrix(gl, programInfoA);
     // specify the modelView matrix for transforming our particle system
     g_partA.setModelViewMatrixBouncy();
 
@@ -800,8 +797,9 @@ function drawPartSysReevesFire()
     g_isClear = 0;
     if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
 
+    var programInfoC = g_partC.getProgramInfo();
     // specify the perspective projection required for viewing
-    setProjectionMatrix(gl, programInfo);
+    setProjectionMatrix(gl, programInfoC);
     // specify the modelView matrix for transforming our particle system
     g_partC.setModelViewMatrixReevesFire();
 
@@ -832,8 +830,9 @@ function drawPartSysTornado()
     g_isClear = 0;
     if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
 
+    var programInfoD = g_partD.getProgramInfo();
     // specify the perspective projection required for viewing
-    setProjectionMatrix(gl, programInfo);
+    setProjectionMatrix(gl, programInfoD);
     // specify the modelView matrix for transforming our particle system
     g_partD.setModelViewMatrixTornado();
 
@@ -864,8 +863,9 @@ function drawPartSysBoids()
     g_isClear = 0;
     if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
 
+    var programInfoE = g_partE.getProgramInfo();
     // specify the perspective projection required for viewing
-    setProjectionMatrix(gl, programInfo);
+    setProjectionMatrix(gl, programInfoE);
     // specify the modelView matrix for transforming our particle system
     g_partE.setModelViewMatrixBoids();
 
@@ -896,8 +896,9 @@ function drawPartSysFallingParts()
     g_isClear = 0;
     if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
 
+    var programInfoF = g_partF.getProgramInfo();
     // specify the perspective projection required for viewing
-    setProjectionMatrix(gl, programInfo);
+    setProjectionMatrix(gl, programInfoF);
     // specify the modelView matrix for transforming our particle system
     g_partF.setModelViewMatrixFallingParts();
 
@@ -928,8 +929,9 @@ function drawPartSysCloth()
     g_isClear = 0;
     if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
 
+    var programInfoG = g_partG.getProgramInfo();
     // specify the perspective projection required for viewing
-    setProjectionMatrix(gl, programInfo);
+    setProjectionMatrix(gl, programInfoG);
     // specify the modelView matrix for transforming our particle system
     g_partG.setModelViewMatrixCloth();
 
@@ -957,6 +959,10 @@ function drawPartSysCloth()
 
 function drawCube(gl, buffers, programInfo)
 {
+    // use the given programInfo
+    gl.useProgram(programInfo.program);
+    gl.program = programInfo.program;
+
     // specify the layout of the input buffer provided to the VS
     setVertexInputLayout(gl, buffers, programInfo);
 
@@ -969,8 +975,6 @@ function drawCube(gl, buffers, programInfo)
     currentAngle += (g_timeStep * angleQuant)/1000;
     // specify the modelView matrix for transforming our cube
     setModelViewMatrixCube(gl, programInfo, currentAngle);
-    // specify the modelView matrix for transforming our particle system
-    g_partE.setModelViewMatrixBoids();
 
     // data type for indices
     const type = gl.UNSIGNED_SHORT;
@@ -980,6 +984,10 @@ function drawCube(gl, buffers, programInfo)
 
 function drawPlane(gl, buffers, programInfo)
 {
+    // use the given programInfo
+    gl.useProgram(programInfo.program);
+    gl.program = programInfo.program;
+
     // specify the layout of the input buffer provided to the VS
     setVertexInputLayout(gl, buffers, programInfo);
 
@@ -987,10 +995,7 @@ function drawPlane(gl, buffers, programInfo)
     setProjectionMatrix(gl, programInfo);
 
     // specify the modelView matrix for transforming our cube
-    //setModelViewMatrixPlane(gl, programInfo);
-
-    // specify the modelView matrix for transforming our particle system
-    g_partE.setModelViewMatrixFallingParts();
+    setModelViewMatrixPlane(gl, programInfo);
 
     // data type for indices
     const type = gl.UNSIGNED_SHORT;
@@ -1000,6 +1005,10 @@ function drawPlane(gl, buffers, programInfo)
 
 function drawGround(gl, buffers, programInfo)
 {
+    // use the given programInfo
+    gl.useProgram(programInfo.program);
+    gl.program = programInfo.program;
+
     // specify the layout of the input buffer provided to the VS
     setVertexInputLayout(gl, buffers, programInfo);
 
@@ -1021,7 +1030,7 @@ function drawGround(gl, buffers, programInfo)
 function drawScene(gl, programInfo)
 {
     // specify the colour that we want for clearing
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clearColor(0.4, 0.7, 0.8, 1.0);
 
     gl.clearDepth(1.0);                 // Clear everything
     gl.enable(gl.DEPTH_TEST);           // Enable depth testing

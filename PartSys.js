@@ -33,15 +33,16 @@ const Properties = {
         r: 10,
         g: 11,
         b: 12,
+        a: 13,
     },
     // mass, in kilograms
-    mass: 13,
+    mass: 14,
     // on-screen diameter (in pixels)
-    diameter: 14,
+    diameter: 15,
     // on-screen appearance (square, round, or soft-round)
-    renderMode: 15,
+    renderMode: 16,
     // # of frame-times until re-initializing (Reeves Fire)
-    age: 16,
+    age: 17,
     /*charge: 17,
     massVelocity: 18,
     massForceAccum: 19,
@@ -57,7 +58,7 @@ const Properties = {
         g: 24,
         b: 25,
     },*/
-    maxVariables: 17,
+    maxVariables: 18,
 };
 
 const Solver = {
@@ -111,6 +112,18 @@ PartSys.prototype.initBouncy2D = function(count)
     console.log('PartSys.Bouncy2D() initializing...');
 
     this.name = "Bouncy Balls Particle System";
+
+    // get the vertex and fragment shader strings
+    var vsSource = document.getElementById("vertex-shader").textContent;
+    var fsSource = document.getElementById("fragment-shader-balls-grad").textContent;    
+    this.program = createProgram(gl, vsSource, fsSource);
+    if (!this.program) {
+      console.log('Failed to create program');
+      return false;
+    }
+    gl.useProgram(this.program);
+    gl.program = this.program;
+    this.programInfo = getAtrribsAndUniforms(gl);
 
     // Create all state-variables
     this.partCount = count;
@@ -245,6 +258,12 @@ PartSys.prototype.initBouncy2D = function(count)
         this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(0.4 + 0.2*this.randY);
         this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.4 + 0.2*this.randZ);
 
+        // give initial color to the particles
+        this.s1[j + Properties.color.r] = 0.8;
+        this.s1[j + Properties.color.g] = 0.2;
+        this.s1[j + Properties.color.b] = 0.2;
+        this.s1[j + Properties.color.a] =  1.0;
+
         // mass, in kg.
         this.s1[j + Properties.mass] =  1.0;
         // on-screen diameter, in pixels
@@ -258,54 +277,9 @@ PartSys.prototype.initBouncy2D = function(count)
 
 
 
-    // 'float' size, in bytes.
-    this.FSIZE = this.s1.BYTES_PER_ELEMENT;
-
-    // Create, Bind, Write
-
-    // Create a vertex buffer object (VBO) in the graphics hardware: get its ID# 
-    this.vboID = gl.createBuffer();
-    if (!this.vboID)
-    {
-        console.log('PartSys.init() Failed to create the VBO object in the GPU');
-        return -1;
-    }
-
-    // Bind buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vboID);
-
-    // Write data
-    gl.bufferData(gl.ARRAY_BUFFER, this.s1, gl.DYNAMIC_DRAW);
-
-    // Tell GLSL to fill the 'a_Position' attribute variable for each shader
-
-    // # of values in this attrib, ex: (x,y,z,w) => 4
-    var nAttributes = 4;
-    // data type (usually gl.FLOAT)
-    var dataType = gl.FLOAT;
-    // use integer normalizing? (usually false)
-    var bNormalize = false;
-    // Stride: #bytes from 1st stored value to next 
-    var stride = Properties.maxVariables * this.FSIZE;
-    // Offiset; #bytes from start of buffer to the 1st attrib value to be used
-    var offset = Properties.position.x * this.FSIZE;
-
-    // specify the layout of the vertex buffer
-    gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexPosition, 
-        nAttributes,
-        dataType, 
-        bNormalize,
-        stride,
-        offset);                                       
-                                
-    // Enable the assignment to a_Position variable
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-}
-
-PartSys.prototype.initBouncy3D = function(count)
-{ 
-    console.log('PartSys.initBouncy3D() stub not finished!');
+    // create index buffer, vertex buffer and color buffer
+    // required for the particle system rendering
+    this.createVertexAndColorBuffers();
 }
 
 PartSys.prototype.initCloth = function(count1, count2)
@@ -313,6 +287,18 @@ PartSys.prototype.initCloth = function(count1, count2)
     console.log('PartSys.Cloth() initializing...');
 
     this.name = "Cloth Particle System";
+
+    // get the vertex and fragment shader strings
+    var vsSource = document.getElementById("vertex-shader").textContent;
+    var fsSource = document.getElementById("fragment-shader").textContent;    
+    this.program = createProgram(gl, vsSource, fsSource);
+    if (!this.program) {
+      console.log('Failed to create program');
+      return false;
+    }
+    gl.useProgram(this.program);
+    gl.program = this.program;
+    this.programInfo = getAtrribsAndUniforms(gl);
 
     // Create all state-variables
     this.partCount = count1 * count2 + 2;
@@ -587,11 +573,16 @@ PartSys.prototype.initCloth = function(count1, count2)
             this.s1[j + Properties.position.x] = j1;
             this.s1[j + Properties.position.y] = c_y;
             this.s1[j + Properties.position.z] = -i1;
-    this.s1[j + Properties.position.w] = 1.0;
+            this.s1[j + Properties.position.w] = 1.0;
             // harcoded velocities for now
             this.s1[j + Properties.velocity.x] =  0.0;
             this.s1[j + Properties.velocity.y] =  0.0;
             this.s1[j + Properties.velocity.z] =  0.0;
+            // give initial color to the particles
+            this.s1[j + Properties.color.r] = 0.9;
+            this.s1[j + Properties.color.g] = 0.9;
+            this.s1[j + Properties.color.b] = 0.9;
+            this.s1[j + Properties.color.a] =  1.0;
             // mass, in kg.
             this.s1[j + Properties.mass] =  1.0;
             // on-screen diameter, in pixels (not used as of now for spring system)
@@ -599,7 +590,7 @@ PartSys.prototype.initCloth = function(count1, count2)
             this.s1[j + Properties.renderMode] = 0.0;
             this.s1[j + Properties.age] = 30 + 100*Math.random();
 
-    j+= Properties.maxVariables;
+            j+= Properties.maxVariables;
         }
     }
 
@@ -617,6 +608,11 @@ PartSys.prototype.initCloth = function(count1, count2)
         this.s1[j + Properties.velocity.x] =  0.0;
         this.s1[j + Properties.velocity.y] =  0.0;
         this.s1[j + Properties.velocity.z] =  0.0;
+        // give initial color to the particles
+        this.s1[j + Properties.color.r] = 0.5;
+        this.s1[j + Properties.color.g] = 0.5;
+        this.s1[j + Properties.color.b] = 0.5;
+        this.s1[j + Properties.color.a] =  1.0;        
         // mass, in kg.
         this.s1[j + Properties.mass] =  1.0;
         // on-screen diameter, in pixels (not used as of now for spring system)
@@ -633,61 +629,10 @@ PartSys.prototype.initCloth = function(count1, count2)
 
 
 
-
-    // 'float' size, in bytes.
-    this.FSIZE = this.s1.BYTES_PER_ELEMENT;
-
-    // Create, Bind, Write
-
-    // Create a vertex buffer object (VBO) in the graphics hardware: get its ID# 
-    this.vboID = gl.createBuffer();
-    if (!this.vboID)
-    {
-        console.log('PartSys.init() Failed to create the VBO object in the GPU');
-        return -1;
-    }
-    // Bind buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vboID);
-    // Write data
-    gl.bufferData(gl.ARRAY_BUFFER, this.s1, gl.DYNAMIC_DRAW);
-
-    // Index Buffer (will be used to draw the "spring" between particles)
-    // Create Buffer, Bind to Index Buffer, Write Data
-    this.indexBuffer = gl.createBuffer();
-    if (!this.indexBuffer)
-    {
-        console.log('Failed to create the index buffer object');
-        return -1;
-    }
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.indices, gl.STATIC_DRAW);
-
-
-
-    // Tell GLSL to fill the 'a_Position' attribute variable for each shader
-
-    // # of values in this attrib, ex: (x,y,z,w) => 4
-    var nAttributes = 4;
-    // data type (usually gl.FLOAT)
-    var dataType = gl.FLOAT;
-    // use integer normalizing? (usually false)
-    var bNormalize = false;
-    // Stride: #bytes from 1st stored value to next 
-    var stride = Properties.maxVariables * this.FSIZE;
-    // Offiset; #bytes from start of buffer to the 1st attrib value to be used
-    var offset = Properties.position.x * this.FSIZE;
-
-    // specify the layout of the vertex buffer
-    gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexPosition, 
-        nAttributes,
-        dataType, 
-        bNormalize,
-        stride,
-        offset);                                       
-                                
-    // Enable the assignment to a_Position variable
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+    // create index buffer, vertex buffer and color buffer
+    // required for the particle system rendering
+    this.createVertexAndColorBuffers();
+    this.createIndexBuffer();
 }
 
 PartSys.prototype.initReevesFire = function(count)
@@ -695,6 +640,18 @@ PartSys.prototype.initReevesFire = function(count)
     console.log('PartSys.ReevesFire() initializing...');
 
     this.name = "Reeves Fire Particle System";
+
+    // get the vertex and fragment shader strings
+    var vsSource = document.getElementById("vertex-shader").textContent;
+    var fsSource = document.getElementById("fragment-shader-balls").textContent;    
+    this.program = createProgram(gl, vsSource, fsSource);
+    if (!this.program) {
+      console.log('Failed to create program');
+      return false;
+    }
+    gl.useProgram(this.program);
+    gl.program = this.program;
+    this.programInfo = getAtrribsAndUniforms(gl);
 
     // Create all state-variables
     this.partCount = count;
@@ -829,6 +786,12 @@ PartSys.prototype.initReevesFire = function(count)
         this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(0.0 + 0.2*this.randY);
         this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.4 + 0.2*this.randZ);
 
+        // give initial color to the particles
+        this.s1[j + Properties.color.r] = 1.0;
+        this.s1[j + Properties.color.g] = 0.3;
+        this.s1[j + Properties.color.b] = 0.0;
+        this.s1[j + Properties.color.a] =  1.0;        
+        
         // mass, in kg.
         this.s1[j + Properties.mass] =  1.0;
         // on-screen diameter, in pixels
@@ -842,49 +805,9 @@ PartSys.prototype.initReevesFire = function(count)
 
 
 
-    // 'float' size, in bytes.
-    this.FSIZE = this.s1.BYTES_PER_ELEMENT;
-
-    // Create, Bind, Write
-
-    // Create a vertex buffer object (VBO) in the graphics hardware: get its ID# 
-    this.vboID = gl.createBuffer();
-    if (!this.vboID)
-    {
-        console.log('PartSys.init() Failed to create the VBO object in the GPU');
-        return -1;
-    }
-
-    // Bind buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vboID);
-
-    // Write data
-    gl.bufferData(gl.ARRAY_BUFFER, this.s1, gl.DYNAMIC_DRAW);
-
-    // Tell GLSL to fill the 'a_Position' attribute variable for each shader
-
-    // # of values in this attrib, ex: (x,y,z,w) => 4
-    var nAttributes = 4;
-    // data type (usually gl.FLOAT)
-    var dataType = gl.FLOAT;
-    // use integer normalizing? (usually false)
-    var bNormalize = false;
-    // Stride: #bytes from 1st stored value to next 
-    var stride = Properties.maxVariables * this.FSIZE;
-    // Offiset; #bytes from start of buffer to the 1st attrib value to be used
-    var offset = Properties.position.x * this.FSIZE;
-
-    // specify the layout of the vertex buffer
-    gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexPosition, 
-        nAttributes,
-        dataType, 
-        bNormalize,
-        stride,
-        offset);                                       
-                                
-    // Enable the assignment to a_Position variable
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+    // create index buffer, vertex buffer and color buffer
+    // required for the particle system rendering
+    this.createVertexAndColorBuffers();
 }
 
 PartSys.prototype.initTornado = function(count)
@@ -892,6 +815,18 @@ PartSys.prototype.initTornado = function(count)
     console.log('PartSys.Tornado() initializing...');
 
     this.name = "Tornado Particle System";
+
+    // get the vertex and fragment shader strings
+    var vsSource = document.getElementById("vertex-shader").textContent;
+    var fsSource = document.getElementById("fragment-shader-balls-grad").textContent;    
+    this.program = createProgram(gl, vsSource, fsSource);
+    if (!this.program) {
+      console.log('Failed to create program');
+      return false;
+    }
+    gl.useProgram(this.program);
+    gl.program = this.program;
+    this.programInfo = getAtrribsAndUniforms(gl);
 
     // Create all state-variables
     this.partCount = count;
@@ -1052,6 +987,12 @@ PartSys.prototype.initTornado = function(count)
         this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(0.2*this.randY);
         this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.2);// + 0.2*this.randZ);
 
+        // give initial color to the particles
+        this.s1[j + Properties.color.r] = 0.5;
+        this.s1[j + Properties.color.g] = 0.5;
+        this.s1[j + Properties.color.b] = 0.5;
+        this.s1[j + Properties.color.a] =  1.0;
+
         // mass, in kg.
         this.s1[j + Properties.mass] =  1.0;
         // on-screen diameter, in pixels
@@ -1065,49 +1006,9 @@ PartSys.prototype.initTornado = function(count)
 
 
 
-    // 'float' size, in bytes.
-    this.FSIZE = this.s1.BYTES_PER_ELEMENT;
-
-    // Create, Bind, Write
-
-    // Create a vertex buffer object (VBO) in the graphics hardware: get its ID# 
-    this.vboID = gl.createBuffer();
-    if (!this.vboID)
-    {
-        console.log('PartSys.init() Failed to create the VBO object in the GPU');
-        return -1;
-    }
-
-    // Bind buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vboID);
-
-    // Write data
-    gl.bufferData(gl.ARRAY_BUFFER, this.s1, gl.DYNAMIC_DRAW);
-
-    // Tell GLSL to fill the 'a_Position' attribute variable for each shader
-
-    // # of values in this attrib, ex: (x,y,z,w) => 4
-    var nAttributes = 4;
-    // data type (usually gl.FLOAT)
-    var dataType = gl.FLOAT;
-    // use integer normalizing? (usually false)
-    var bNormalize = false;
-    // Stride: #bytes from 1st stored value to next 
-    var stride = Properties.maxVariables * this.FSIZE;
-    // Offiset; #bytes from start of buffer to the 1st attrib value to be used
-    var offset = Properties.position.x * this.FSIZE;
-
-    // specify the layout of the vertex buffer
-    gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexPosition, 
-        nAttributes,
-        dataType, 
-        bNormalize,
-        stride,
-        offset);                                       
-                                
-    // Enable the assignment to a_Position variable
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+    // create index buffer, vertex buffer and color buffer
+    // required for the particle system rendering
+    this.createVertexAndColorBuffers();
 }
 
 PartSys.prototype.initBoids = function(count)
@@ -1115,6 +1016,18 @@ PartSys.prototype.initBoids = function(count)
     console.log('PartSys.Boids() initializing...');
 
     this.name = "Boids Particle System";
+
+    // get the vertex and fragment shader strings
+    var vsSource = document.getElementById("vertex-shader").textContent;
+    var fsSource = document.getElementById("fragment-shader").textContent;    
+    this.program = createProgram(gl, vsSource, fsSource);
+    if (!this.program) {
+      console.log('Failed to create program');
+      return false;
+    }
+    gl.useProgram(this.program);
+    gl.program = this.program;
+    this.programInfo = getAtrribsAndUniforms(gl);
 
     // Create all state-variables
     this.partCount = count;
@@ -1259,6 +1172,12 @@ PartSys.prototype.initBoids = function(count)
         this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(0.05*this.randY);
         this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.05*this.randZ);
 
+        // give initial color to the particles
+        this.s1[j + Properties.color.r] = 1.0;
+        this.s1[j + Properties.color.g] = 1.0;
+        this.s1[j + Properties.color.b] = 0.0;
+        this.s1[j + Properties.color.a] =  1.0;
+
         // mass, in kg.
         this.s1[j + Properties.mass] =  1.0;
         // on-screen diameter, in pixels
@@ -1272,49 +1191,9 @@ PartSys.prototype.initBoids = function(count)
 
 
 
-    // 'float' size, in bytes.
-    this.FSIZE = this.s1.BYTES_PER_ELEMENT;
-
-    // Create, Bind, Write
-
-    // Create a vertex buffer object (VBO) in the graphics hardware: get its ID# 
-    this.vboID = gl.createBuffer();
-    if (!this.vboID)
-    {
-        console.log('PartSys.init() Failed to create the VBO object in the GPU');
-        return -1;
-    }
-
-    // Bind buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vboID);
-
-    // Write data
-    gl.bufferData(gl.ARRAY_BUFFER, this.s1, gl.DYNAMIC_DRAW);
-
-    // Tell GLSL to fill the 'a_Position' attribute variable for each shader
-
-    // # of values in this attrib, ex: (x,y,z,w) => 4
-    var nAttributes = 4;
-    // data type (usually gl.FLOAT)
-    var dataType = gl.FLOAT;
-    // use integer normalizing? (usually false)
-    var bNormalize = false;
-    // Stride: #bytes from 1st stored value to next 
-    var stride = Properties.maxVariables * this.FSIZE;
-    // Offiset; #bytes from start of buffer to the 1st attrib value to be used
-    var offset = Properties.position.x * this.FSIZE;
-
-    // specify the layout of the vertex buffer
-    gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexPosition, 
-        nAttributes,
-        dataType, 
-        bNormalize,
-        stride,
-        offset);                                       
-                                
-    // Enable the assignment to a_Position variable
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+    // create index buffer, vertex buffer and color buffer
+    // required for the particle system rendering
+    this.createVertexAndColorBuffers();
 }
 
 PartSys.prototype.initFallingParts = function(count)
@@ -1322,6 +1201,18 @@ PartSys.prototype.initFallingParts = function(count)
     console.log('PartSys.FallingParts() initializing...');
 
     this.name = "Falling Particles System";
+
+    // get the vertex and fragment shader strings
+    var vsSource = document.getElementById("vertex-shader").textContent;
+    var fsSource = document.getElementById("fragment-shader-balls").textContent;    
+    this.program = createProgram(gl, vsSource, fsSource);
+    if (!this.program) {
+      console.log('Failed to create program');
+      return false;
+    }
+    gl.useProgram(this.program);
+    gl.program = this.program;
+    this.programInfo = getAtrribsAndUniforms(gl);
 
     // Create all state-variables
     this.partCount = count;
@@ -1416,8 +1307,8 @@ PartSys.prototype.initFallingParts = function(count)
     this.runMode =  3;
     // adjust by s/S keys
     this.solvType = Solver.Euler;
-    // floor-bounce constraint type:
     // ==0 for velocity-reversal, as in all previous versions
+    // floor-bounce constraint type:
     // ==1 for Chapter 3's collision resolution method, which uses
     // an 'impulse' to cancel any velocity boost caused by falling below the floor
     this.bounceType = -1;
@@ -1447,6 +1338,11 @@ PartSys.prototype.initFallingParts = function(count)
         this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(0.8*this.randY);
         this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.0);// + 1.5*this.randZ);
 
+        this.s1[j + Properties.color.r] = 1.0;
+        this.s1[j + Properties.color.g] = 1.0;
+        this.s1[j + Properties.color.b] = 1.0;
+        this.s1[j + Properties.color.a] =  1.0;
+
         // mass, in kg.
         this.s1[j + Properties.mass] =  1.0;
         // on-screen diameter, in pixels
@@ -1459,25 +1355,73 @@ PartSys.prototype.initFallingParts = function(count)
 
 
 
+    // create index buffer, vertex buffer and color buffer
+    // required for the particle system rendering
+    this.createVertexAndColorBuffers();
+}
 
-    // 'float' size, in bytes.
-    this.FSIZE = this.s1.BYTES_PER_ELEMENT;
+PartSys.prototype.getProgramInfo = function()
+{
+    gl.useProgram(this.program);
+    gl.program = this.program;
+    return this.programInfo;
+}
 
-    // Create, Bind, Write
-
-    // Create a vertex buffer object (VBO) in the graphics hardware: get its ID# 
-    this.vboID = gl.createBuffer();
-    if (!this.vboID)
+PartSys.prototype.createVertexAndColorBuffers = function()
+{
+    // Create, Bind, Write Vertex Buffer
+    var vertexBuffer = gl.createBuffer();
+    if (!vertexBuffer)
     {
         console.log('PartSys.init() Failed to create the VBO object in the GPU');
         return -1;
     }
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, this.s1, gl.DYNAMIC_DRAW);
+
+
+    // Create Buffer, Bind to Color Buffer, Write Data
+    var colorBuffer = gl.createBuffer();
+    if (!colorBuffer)
+    {
+        console.log('Failed to create the color buffer object');
+        return -1;
+    }    
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, this.s1, gl.STATIC_DRAW);
+
+    this.buffers = {
+        vertex: vertexBuffer,
+        color: colorBuffer,
+    }
+}
+
+PartSys.prototype.createIndexBuffer = function()
+{
+    // Create Buffer, Bind to Index Buffer, Write Data
+    this.indexBuffer = gl.createBuffer();
+    if (!this.indexBuffer)
+    {
+        console.log('Failed to create the index buffer object');
+        return -1;
+    }
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.indices, gl.STATIC_DRAW);        
+}
+
+PartSys.prototype.updateVBOContents = function()
+{
+    // 'float' size, in bytes.
+    this.FSIZE = this.s1.BYTES_PER_ELEMENT;
+
+    // CHANGE our VBO's contents:
 
     // Bind buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vboID);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.vertex);
 
-    // Write data
-    gl.bufferData(gl.ARRAY_BUFFER, this.s1, gl.DYNAMIC_DRAW);
+    // offset: # of bytes to skip at the start of the VBO before
+    var offset = 0;
+    gl.bufferSubData(gl.ARRAY_BUFFER, offset, this.s1)
 
     // Tell GLSL to fill the 'a_Position' attribute variable for each shader
 
@@ -1494,15 +1438,51 @@ PartSys.prototype.initFallingParts = function(count)
 
     // specify the layout of the vertex buffer
     gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexPosition, 
+        this.programInfo.attribLocations.vertexPosition, 
         nAttributes,
         dataType, 
         bNormalize,
         stride,
-        offset);                                       
+        offset);
                                 
     // Enable the assignment to a_Position variable
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+    gl.enableVertexAttribArray(this.programInfo.attribLocations.vertexPosition);
+
+
+    // Tell GLSL to fill the 'a_Color' attribute variable for each shader
+    // Bind the buffer object to target (gl.ARRAY_BUFFER = colorBuffer)    
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffers.color);
+
+    // offset: # of bytes to skip at the start of the VBO before
+    var offset = 0;
+    gl.bufferSubData(gl.ARRAY_BUFFER, offset, this.s1)
+
+    // # of values in this attrib, ex: (r,g,b,w) => 4
+    nAttributes = 4;
+    dataType = gl.FLOAT;
+    bNormalize = false;
+    // Stride: #bytes from 1st stored value to next 
+    stride = Properties.maxVariables * this.FSIZE;
+    // Offiset; #bytes from start of buffer to the 1st attrib value to be used
+    offset = Properties.color.r * this.FSIZE;
+
+    // specify the layout of the vertex buffer       
+    gl.vertexAttribPointer(
+        this.programInfo.attribLocations.vertexColor,
+        nAttributes,
+        dataType,
+        bNormalize,
+        stride,
+        offset);
+
+    // Enable the assignment to a_Color variable
+    gl.enableVertexAttribArray(this.programInfo.attribLocations.vertexColor);
+
+    // Indices ->
+
+    // Tell WebGL which indices to use to index the vertices
+    // will be null if no index buffer exists
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.buffers.index);
 }
 
 PartSys.prototype.applyForces = function(s, fList)
@@ -1801,39 +1781,13 @@ PartSys.prototype.dotFinder = function(dest, src)
 
 PartSys.prototype.render = function(s)
 {
-    // CHANGE our VBO's contents:
+    // use the corresponding shader
+    gl.useProgram(this.program);
+    gl.program = this.program;
 
-    // Bind buffer
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.vboID);
-
-    // offset: # of bytes to skip at the start of the VBO before
-    var offset = 0;
-    gl.bufferSubData(gl.ARRAY_BUFFER, offset, this.s1)
-
-    // Tell GLSL to fill the 'a_Position' attribute variable for each shader
-
-    // # of values in this attrib, ex: (x,y,z,w) => 4
-    var nAttributes = 4;
-    // data type (usually gl.FLOAT)
-    var dataType = gl.FLOAT;
-    // use integer normalizing? (usually false)
-    var bNormalize = false;
-    // Stride: #bytes from 1st stored value to next 
-    var stride = Properties.maxVariables * this.FSIZE;
-    // Offiset; #bytes from start of buffer to the 1st attrib value to be used
-    var offset = Properties.position.x * this.FSIZE;
-
-    // specify the layout of the vertex buffer
-    gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexPosition, 
-        nAttributes,
-        dataType, 
-        bNormalize,
-        stride,
-        offset);
-                                
-    // Enable the assignment to a_Position variable
-    gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+    // update and bind data to respective buffer objects
+    // vertex, color, index
+    this.updateVBOContents();
 
 
     /*// run/step/pause the particle system
@@ -1853,8 +1807,6 @@ PartSys.prototype.render = function(s)
         // Tell WebGL which indices to use to index the vertices
         // will be null if no index buffer exists
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-
-        //gl.drawArrays(gl.LINES, nFirst, vertexCount);
         
         // data type for indices
         const type = gl.UNSIGNED_SHORT;
@@ -2112,7 +2064,7 @@ PartSys.prototype.setModelViewMatrixCloth = function()
 
     // Pass our current matrix to the vertex shaders:
 	gl.uniformMatrix4fv(
-        programInfo.uniformLocations.modelViewMatrix,
+        this.programInfo.uniformLocations.modelViewMatrix,
         false,
         modelViewMatrix.elements);
 }
@@ -2135,7 +2087,7 @@ PartSys.prototype.setModelViewMatrixFallingParts = function()
 
     // Pass our current matrix to the vertex shaders:
 	gl.uniformMatrix4fv(
-        programInfo.uniformLocations.modelViewMatrix,
+        this.programInfo.uniformLocations.modelViewMatrix,
         false,
         modelViewMatrix.elements);
 }
@@ -2158,7 +2110,7 @@ PartSys.prototype.setModelViewMatrixBoids = function()
 
     // Pass our current matrix to the vertex shaders:
 	gl.uniformMatrix4fv(
-        programInfo.uniformLocations.modelViewMatrix,
+        this.programInfo.uniformLocations.modelViewMatrix,
         false,
         modelViewMatrix.elements);
 }
@@ -2181,7 +2133,7 @@ PartSys.prototype.setModelViewMatrixTornado = function()
 
     // Pass our current matrix to the vertex shaders:
 	gl.uniformMatrix4fv(
-        programInfo.uniformLocations.modelViewMatrix,
+        this.programInfo.uniformLocations.modelViewMatrix,
         false,
         modelViewMatrix.elements);
 }
@@ -2204,7 +2156,7 @@ PartSys.prototype.setModelViewMatrixReevesFire = function()
 
     // Pass our current matrix to the vertex shaders:
 	gl.uniformMatrix4fv(
-        programInfo.uniformLocations.modelViewMatrix,
+        this.programInfo.uniformLocations.modelViewMatrix,
         false,
         modelViewMatrix.elements);
 }
@@ -2227,7 +2179,7 @@ PartSys.prototype.setModelViewMatrixSpringPair = function()
 
     // Pass our current matrix to the vertex shaders:
 	gl.uniformMatrix4fv(
-        programInfo.uniformLocations.modelViewMatrix,
+        this.programInfo.uniformLocations.modelViewMatrix,
         false,
         modelViewMatrix.elements);
 }
@@ -2250,7 +2202,7 @@ PartSys.prototype.setModelViewMatrixBouncy = function()
 
     // Pass our current matrix to the vertex shaders:
 	gl.uniformMatrix4fv(
-        programInfo.uniformLocations.modelViewMatrix,
+        this.programInfo.uniformLocations.modelViewMatrix,
         false,
         modelViewMatrix.elements);
 }
