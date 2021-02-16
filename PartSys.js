@@ -683,7 +683,7 @@ PartSys.prototype.initReevesFire = function(count)
     this.name = "Reeves Fire Particle System";
 
     // get the vertex and fragment shader strings
-    var vsSource = document.getElementById("vertex-shader").textContent;
+    var vsSource = document.getElementById("vertex-shader-balls").textContent;
     var fsSource = document.getElementById("fragment-shader-balls").textContent;    
     this.program = createProgram(gl, vsSource, fsSource);
     if (!this.program) {
@@ -712,6 +712,8 @@ PartSys.prototype.initReevesFire = function(count)
 
     // earth gravity for all particles:
     fTmp.forceType = Forces.EarthGravity;
+    // reduce gravity effect
+    fTmp.gravConst = 0.0;
     // set it to affect ALL particles
     fTmp.targFirst = 0;
     // (negative value means ALL particles)
@@ -757,8 +759,8 @@ PartSys.prototype.initReevesFire = function(count)
     // through all the rest of them
     cTmp.partCount = -1;
     // box extent:  +/- 1.0 box at origin
-    cTmp.xMin = 0.0; cTmp.xMax = 20.0;
-    cTmp.yMin = 0.0; cTmp.yMax = 20.0;
+    cTmp.xMin = -20.0; cTmp.xMax = 20.0;
+    cTmp.yMin = -20.0; cTmp.yMax = 20.0;
     cTmp.zMin = 0.0; cTmp.zMax = 20.0;
     // bouncyness: coeff. of restitution.
     cTmp.Kresti = 1.0;
@@ -819,29 +821,34 @@ PartSys.prototype.initReevesFire = function(count)
         this.roundRand();
         // all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
         // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
-        this.s1[j + Properties.position.x] = 0.8 + 1.0*this.randX; 
-        this.s1[j + Properties.position.y] = 0.8 + 1.0*this.randY;  
-        this.s1[j + Properties.position.z] = 0.8 + 1.0*this.randZ;
+        this.s1[j + Properties.position.x] = 1.0*this.randX; 
+        this.s1[j + Properties.position.y] = 1.0*this.randY;  
+        this.s1[j + Properties.position.z] = 0.5 + 0.5*this.randZ;
         this.s1[j + Properties.position.w] =  1.0;
 
         // Now choose random initial velocities too:
         this.roundRand();
-        this.s1[j + Properties.velocity.x] =  this.INIT_VEL*(0.0 + 0.2*this.randX);
-        this.s1[j + Properties.velocity.y] =  this.INIT_VEL*(0.0 + 0.2*this.randY);
-        this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.4 + 0.2*this.randZ);
+        this.s1[j + Properties.velocity.x] =  (-this.s1[j + Properties.position.x]) * this.INIT_VEL*(0.0 + 0.2*this.randX);
+        this.s1[j + Properties.velocity.y] =  (-this.s1[j + Properties.position.y]) * this.INIT_VEL*(0.0 + 0.2*this.randY);
+        this.s1[j + Properties.velocity.z] =  this.INIT_VEL*(0.6 + 0.2*this.randZ);
+
+        // distance of particle from center:
+        var radius = Math.sqrt(Math.pow(this.s1[j + Properties.position.x],2) + Math.pow(this.s1[j + Properties.position.y],2));
+        radius = Math.pow(radius, 1.5);
 
         // give initial color to the particles
-        this.s1[j + Properties.color.r] = 1.0;
-        this.s1[j + Properties.color.g] = 0.3;
-        this.s1[j + Properties.color.b] = 0.0;
+        this.s1[j + Properties.color.r] = 1.0*radius + 1.0*(1.0-radius);
+        this.s1[j + Properties.color.g] = 0.0*radius + 1.0*(1.0-radius);
+        this.s1[j + Properties.color.b] = 0.0*radius + 0.0*(1.0-radius);
         this.s1[j + Properties.color.a] =  1.0;        
         
         // mass, in kg.
         this.s1[j + Properties.mass] =  1.0;
         // on-screen diameter, in pixels
-        this.s1[j + Properties.diameter] =  2.0 + 10*Math.random();
+        this.s1[j + Properties.diameter] =  8.0 + 1.0*Math.random();
         this.s1[j + Properties.renderMode] = 0.0;
-        this.s1[j + Properties.age] = 20 + 5*Math.random();
+        this.s1[j + Properties.age] = 20*(1.5-radius) + 3*Math.random();
+
     }
     // COPY contents of state-vector s1 to s2
     this.s2.set(this.s1);
@@ -2014,31 +2021,44 @@ PartSys.prototype.doConstraints = function(limitList)
             // decrement lifetime
             this.s2[j + Properties.age] -= 1;
             this.s2[j + Properties.diameter] -= 0.05;
+            this.s2[j + Properties.mass] -= 0.05;
 
             // End of life: RESET this particle!    
             if(this.s2[j + Properties.age] <= 0) 
             {
-                this.roundRand();       // set this.randX,randY,randZ to random location in 
-                                        // a 3D unit sphere centered at the origin.
-                //all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
-                // set random positions in a 0.1-radius ball centered at (-0.8,-0.8,-0.8)
-                this.s2[j + Properties.position.x] = 0.8 + 1.0*this.randX;
-                this.s2[j + Properties.position.y] = 0.8 + 1.0*this.randY;
-                this.s2[j + Properties.position.z] = 0.8 + 1.0*this.randZ;
-                // position 'w' coordinate;
+                // set this.randX,randY,randZ to random location in
+                // a 3D unit sphere centered at the origin
+                this.roundRand();
+                // all our bouncy-balls stay within a +/- 0.9 cube centered at origin; 
+                // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
+                this.s2[j + Properties.position.x] = 1.0*this.randX; 
+                this.s2[j + Properties.position.y] = 1.0*this.randY;  
+                this.s2[j + Properties.position.z] = 0.5 + 0.5*this.randZ;
                 this.s2[j + Properties.position.w] =  1.0;
 
                 // Now choose random initial velocities too:
                 this.roundRand();
-                this.s2[j + Properties.velocity.x] =  (this.s2[j + Properties.position.x] - 0.8)*this.INIT_VEL*(0.0 + 0.2*this.randX);
-                this.s2[j + Properties.velocity.y] =  (this.s2[j + Properties.position.y] - 0.8)*this.INIT_VEL*(0.0 + 0.2*this.randY);
-                this.s2[j + Properties.velocity.z] =  this.INIT_VEL*(0.4 + 0.2*this.randZ);
+                this.s2[j + Properties.velocity.x] =  (-this.s2[j + Properties.position.x])*this.INIT_VEL*(0.0 + 0.2*this.randX);
+                this.s2[j + Properties.velocity.y] =  (-this.s2[j + Properties.position.y])*this.INIT_VEL*(0.0 + 0.2*this.randY);
+                this.s2[j + Properties.velocity.z] =  this.INIT_VEL*(0.6 + 0.2*this.randZ);
+                
+                // distance of particle from center:
+                var radius = Math.sqrt(Math.pow(this.s2[j + Properties.position.x],2) + Math.pow(this.s2[j + Properties.position.y],2));
+                radius = Math.pow(radius, 1.0);
+
+                // give initial color to the particles
+                this.s2[j + Properties.color.r] = (1.0*radius + 1.0*(1.0-radius))*(2.0 - this.s2[j + Properties.position.z]);
+                this.s2[j + Properties.color.g] = (0.0*radius + 1.0*(1.0-radius))*(2.0 - this.s2[j + Properties.position.z]);
+                this.s2[j + Properties.color.b] = (0.0*radius + 0.0*(1.0-radius))*(2.0 - this.s2[j + Properties.position.z]);
+                this.s2[j + Properties.color.a] =  1.0;
+                
                 // mass, in kg.
                 this.s2[j + Properties.mass] =  1.0;
                 // on-screen diameter, in pixels
-                this.s2[j + Properties.diameter] =  2.0 + 1*Math.random();
+                //this.s1[j + Properties.diameter] =  8.0 + 1.0*Math.random();
+                this.s2[j + Properties.diameter] =  8.0 + 1.0*Math.random();
                 this.s2[j + Properties.renderMode] = 0.0;
-                this.s2[j + Properties.age] = 10 + 5*Math.random();
+                this.s2[j + Properties.age] = 25*(1.25-radius*radius);
             }
         }
     }
