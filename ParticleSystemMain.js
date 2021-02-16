@@ -49,10 +49,6 @@ function main()
     // Bouncy Balls
     g_partA = new PartSys();
 
-    // create second particle-system object
-    // Spring System
-    g_partB = new PartSys();
-
     // create thrid particle-system object
     // Reeves Fire
     g_partC = new PartSys();
@@ -65,18 +61,19 @@ function main()
     // Boids
     g_partE = new PartSys();
 
-    // create sizth particle-system object
+    // create sixth particle-system object
     // Falling Particles
     g_partF = new PartSys();
+
+    // create seventh particle-system object
+    // Cloth
+    g_partG = new PartSys();
 
     // Initialize Particle systems:
     
     // create a 2D bouncy-ball system where
     // 2 particles bounce within -0.9 <=x,y<0.9 and z=0.
     g_partA.initBouncy2D(200);
-
-    // create a 2 particle spring system
-    g_partB.initSpringPair(4);
 
     // create a Reeves Fire
     g_partC.initReevesFire(150);
@@ -89,6 +86,9 @@ function main()
 
     // create particles falling on plane
     g_partF.initFallingParts(50);
+
+    // create Cloth
+    g_partG.initCloth(4, 4);
 
     // recursively call tick() using requestAnimationFrame
     var tick = function ()
@@ -795,38 +795,6 @@ function drawPartSysBouncy()
     }
 }
 
-function drawPartSysSpring()
-{
-    g_isClear = 0;
-    if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
-
-    // specify the perspective projection required for viewing
-    setProjectionMatrix(gl, programInfo);
-    // specify the modelView matrix for transforming our particle system
-    g_partB.setModelViewMatrixSpringPair();
-
-    if (false == bIsPaused)
-    {
-        // find current net force on each particle
-        g_partB.applyForces(g_partB.s1, g_partB.forceList);
-        // find time-derivative s1dot from s1;
-        g_partB.dotFinder(g_partB.s1dot, g_partB.s1);
-        // find s2 from s1 & related states.
-        g_partB.solver();
-        // Apply all constraints, s2 is ready!
-        g_partB.doConstraints(g_partB.limitList);
-        // transfer current state to VBO, set uniforms, draw it!
-        g_partB.render(2);
-        // Make s2 the new current state s1.s
-        g_partB.swap();        
-    }
-    else
-    {
-        // transfer current state to VBO, set uniforms, draw it!
-        g_partB.render(2);       
-    }
-}
-
 function drawPartSysReevesFire()
 {
     g_isClear = 0;
@@ -955,6 +923,38 @@ function drawPartSysFallingParts()
     }
 }
 
+function drawPartSysCloth()
+{
+    g_isClear = 0;
+    if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
+
+    // specify the perspective projection required for viewing
+    setProjectionMatrix(gl, programInfo);
+    // specify the modelView matrix for transforming our particle system
+    g_partG.setModelViewMatrixCloth();
+
+    if (false == bIsPaused)
+    {
+        // find current net force on each particle
+        g_partG.applyForces(g_partG.s1, g_partG.forceList);
+        // find time-derivative s1dot from s1;
+        g_partG.dotFinder(g_partG.s1dot, g_partG.s1);
+        // find s2 from s1 & related states.
+        g_partG.solver();
+        // Apply all constraints, s2 is ready!
+        g_partG.doConstraints(g_partG.limitList);
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partG.render(2);
+        // Make s2 the new current state s1.s
+        g_partG.swap();        
+    }
+    else
+    {
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partG.render(2);       
+    }
+}
+
 function drawCube(gl, buffers, programInfo)
 {
     // specify the layout of the input buffer provided to the VS
@@ -1042,9 +1042,6 @@ function drawScene(gl, programInfo)
     // draw the first particle system - Bouncy Balls
     drawPartSysBouncy();
 
-    // draw the second particle system - Spring system
-    drawPartSysSpring();
-
     // draw the third particle system - Reeves Fire
     drawPartSysReevesFire();
     
@@ -1056,6 +1053,10 @@ function drawScene(gl, programInfo)
 
     // draw the sixth particle system - Falling Particles
     drawPartSysFallingParts();
+
+    // draw the seventh particle system - Cloth
+    drawPartSysCloth();
+    
 }
 
 

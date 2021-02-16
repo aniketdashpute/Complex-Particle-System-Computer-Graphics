@@ -57,13 +57,7 @@ const Properties = {
         g: 24,
         b: 25,
     },*/
-    springCenter:
-    {
-        x: 17,
-        y: 18,
-        z: 19,
-    },
-    maxVariables: 20,
+    maxVariables: 17,
 };
 
 const Solver = {
@@ -314,28 +308,53 @@ PartSys.prototype.initBouncy3D = function(count)
     console.log('PartSys.initBouncy3D() stub not finished!');
 }
 
-PartSys.prototype.initSpringPair = function(count)
+PartSys.prototype.initCloth = function(count1, count2)
 {
-    console.log('PartSys.SpringPair() initializing...');
+    console.log('PartSys.Cloth() initializing...');
 
-    this.name = "Spring Particle System";
+    this.name = "Cloth Particle System";
 
     // Create all state-variables
-    this.partCount = count;
+    this.partCount = count1 * count2 + 2;
     this.s1 =    new Float32Array(this.partCount * Properties.maxVariables);
     this.s2 =    new Float32Array(this.partCount * Properties.maxVariables);
     this.s1dot = new Float32Array(this.partCount * Properties.maxVariables);  
+
+    // for this Cloth only:
+    var K_spring = 40.0
+    var K_springDamp = 3.0;
+    var K_restLength = 1.0;
+
     // Float32Array objects are zero-filled by default
 
     // Create force-causing objects:
     var fTmp;
 
+    var indexarray = [];
+
+    nIndexCount = 0;
     // create the spring forces between the 4 particles of the tetrahedron
-    for (i = 0; i< 4; i++)
+    for (var i = 0; i < count1; i++)
     {
-        for (j = i+1; j<4; j++)
+        for (var j = 0; j < count2; j++)
         {
-            console.log("Connecting from P: ", i, "to P: ", j);
+            // connection from (i,j) to neighbours -
+            // east, south-east, south, south-west
+            var deltaI = [0, 1, 1, 1];
+            var deltaJ = [1, 1, 0, -1];
+            for (k = 0; k < 4; k++)
+            {
+                var i1 = i + deltaI[k];
+                var j1 = j + deltaJ[k];
+                if (i1 < count1 && i1 >= 0 && j1 < count2 && j1 >=0)
+                {
+                    //console.log("Connecting from P: "+i+j + "to: "+i1+j1);
+                    
+                    // fill the index buffer to draw the springs
+                    var p1 = i * count2 + j;
+                    var p2 = i1 * count2 + j1;
+                    indexarray = indexarray.concat(p1, p2);
+
             fTmp = new CForcer();
             // Two particle spring system:
             fTmp.forceType = Forces.Spring;
@@ -344,23 +363,91 @@ PartSys.prototype.initSpringPair = function(count)
             // For springs, set targCount=0 & use e1,e2
             fTmp.targCount = 0;
             // start point particle number
-            fTmp.e1 = i;
+                    fTmp.e1 = p1;
             // end point particle number
-            fTmp.e2 = j;
+                    fTmp.e2 = p2;
             // Spring constant: force = stretchDistance*K_spring
-            fTmp.K_spring = 2.0;
+                    fTmp.K_spring = K_spring;
             // Spring damping: (friction within the spring);
             // force = -relVel*K_damp; 'relative velocity' is
             // how fast the spring length is changing, and
             // applied along the direction of the spring.
-            fTmp.K_springDamp = 1.0;
+                    fTmp.K_springDamp = K_springDamp;
             // the zero-force length of this spring.      
-            fTmp.K_restLength = 2.0;
+                    fTmp.K_restLength = Math.sqrt((i-i1)*(i-i1) + (j-j1)*(j-j1));
             // (and IGNORE all other Cforcer members...)
             // append this to the forceList array of force-causing objects
             this.forceList.push(fTmp);
+
+                    nIndexCount = nIndexCount + 2;
+                }
+            }
+            
         }
     }
+
+    // 2 more particles at the end to hold the cloth
+    var p1 = count1 * count2;
+    var p2 = 0;
+    indexarray = indexarray.concat(p1, p2);
+    // create spring force
+    fTmp = new CForcer();
+    // Two particle spring system:
+    fTmp.forceType = Forces.Spring;
+    // set it to affect ALL particles
+    fTmp.targFirst = 0;
+    // For springs, set targCount=0 & use e1,e2
+    fTmp.targCount = 0;
+    // start point particle number
+    fTmp.e1 = p1;
+    // end point particle number
+    fTmp.e2 = p2;
+    // Spring constant: force = stretchDistance*K_spring
+    fTmp.K_spring = K_spring;
+    // Spring damping: (friction within the spring)
+    fTmp.K_springDamp = K_springDamp;
+    // the zero-force length of this spring.      
+    fTmp.K_restLength = K_restLength;
+    // (and IGNORE all other Cforcer members...)
+    // append this to the forceList array of force-causing objects
+    this.forceList.push(fTmp);
+    // indexCount increment
+    nIndexCount = nIndexCount + 2;
+
+    p1 = count1 * count2 + 1;
+    p2 = count2 - 1;
+    indexarray = indexarray.concat(p1, p2);
+    // create spring force
+    fTmp = new CForcer();
+    // Two particle spring system:
+    fTmp.forceType = Forces.Spring;
+    // set it to affect ALL particles
+    fTmp.targFirst = 0;
+    // For springs, set targCount=0 & use e1,e2
+    fTmp.targCount = 0;
+    // start point particle number
+    fTmp.e1 = p1;
+    // end point particle number
+    fTmp.e2 = p2;
+    // Spring constant: force = stretchDistance*K_spring
+    fTmp.K_spring = K_spring;
+    // Spring damping: (friction within the spring)
+    fTmp.K_springDamp = K_springDamp;
+    // the zero-force length of this spring.      
+    fTmp.K_restLength = K_restLength;
+    // (and IGNORE all other Cforcer members...)
+    // append this to the forceList array of force-causing objects
+    this.forceList.push(fTmp);
+    // indexCount increment
+    nIndexCount = nIndexCount + 2;
+
+    // create the list of indices and assign the count
+    this.indices = new Uint16Array (indexarray);
+    this.indexCount = nIndexCount;
+
+
+
+
 
     // drag for all particles:
     fTmp = new CForcer();
@@ -371,7 +458,7 @@ PartSys.prototype.initSpringPair = function(count)
     // apply it to ALL particles
     fTmp.targFirst = 0;
     // negative value means ALL particles
-    fTmp.partCount = -1;
+    fTmp.partCount = count1 * count2;
     // (and IGNORE all other Cforcer members...)
     // append this to the forceList array of force-causing objects
     this.forceList.push(fTmp);
@@ -383,7 +470,7 @@ PartSys.prototype.initSpringPair = function(count)
     // set it to affect ALL particles
     fTmp.targFirst = 0;
     // (negative value means ALL particles)
-    fTmp.partCount = -1;
+    fTmp.partCount = count1 * count2;
     // (and IGNORE all other Cforcer members...)
     // append this to the forceList array of force-causing objects
     this.forceList.push(fTmp);
@@ -391,13 +478,14 @@ PartSys.prototype.initSpringPair = function(count)
 
 
     // Report:
-    console.log("PartSys.initSpringPair() created PartSys.forceList[] array of ");
+    console.log("PartSys.Cloth() created PartSys.forceList[] array of ");
     console.log("\t\t", this.forceList.length, "CForcer objects:");
     for(i=0; i<this.forceList.length; i++)
     {
         console.log("CForceList[",i,"]");
         this.forceList[i].printMe();
     }
+
 
 
 
@@ -414,18 +502,34 @@ PartSys.prototype.initSpringPair = function(count)
     // through all the rest of them
     cTmp.partCount = -1;
     // box extent:  +/- 1.0 box at origin
-    var boxLen = 10.0;
+    var boxLen = 20.0;
     cTmp.xMin = -boxLen; cTmp.xMax = boxLen;
     cTmp.yMin = -2 * boxLen; cTmp.yMax = 2 *boxLen;
-    cTmp.zMin = 0.0; cTmp.zMax = boxLen;
+    cTmp.zMin = -boxLen; cTmp.zMax = boxLen;
     // bouncyness: coeff. of restitution.
     cTmp.Kresti = 0.9;
     // (and IGNORE all other CLimit members...)
     // append this to array of constraint-causing objects
     this.limitList.push(cTmp);
 
+
+
+    // Anchor first particle
+    cTmp = new CLimit();
+    // set how particles 'bounce' from its surface
+    cTmp.hitType = -1;//HitType.BounceImpulsive;
+    // confine particles inside axis-aligned rectangular volume
+    cTmp.limitType = LimitType.Distance.Anchor;
+    // applies to ALL particles; starting at 0
+    cTmp.targFirst = count1 * count2;
+    // through all the rest of them
+    cTmp.partCount = 2;
+    // (and IGNORE all other CLimit members...)
+    // append this to array of constraint-causing objects
+    this.limitList.push(cTmp);
+
     // Report:
-    console.log("PartSys.initSpringPair() created PartSys.limitList[] array of ");
+    console.log("PartSys.Cloth() created PartSys.limitList[] array of ");
     console.log("\t\t", this.limitList.length, "CLimit objects.");
     for(i=0; i<this.limitList.length; i++)
     {
@@ -474,63 +578,56 @@ PartSys.prototype.initSpringPair = function(count)
     var c_y = 5.0;
     var c_z = 5.0;
 
-    // 1st particle
-    var j = 0;
-    this.s1[j + Properties.position.x] = c_x + 0.0; 
-    this.s1[j + Properties.position.y] = c_y + 1.0;  
-    this.s1[j + Properties.position.z] = c_z + 0.5;
-    this.s1[j + Properties.position.w] = 1.0;
-    // 2nd particle
-    j+= Properties.maxVariables;
-    this.s1[j + Properties.position.x] = c_x + 1.0; 
-    this.s1[j + Properties.position.y] = c_y + -0.7;  
-    this.s1[j + Properties.position.z] = c_z + 0.2;
-    this.s1[j + Properties.position.w] = 1.0;
-    // 3rd particle
-    j+= Properties.maxVariables;
-    this.s1[j + Properties.position.x] = c_x + -1.0; 
-    this.s1[j + Properties.position.y] = c_y + -0.7;  
-    this.s1[j + Properties.position.z] = c_z + 0.9;
-    this.s1[j + Properties.position.w] = 1.0;
-    // 4th particle
-    j+= Properties.maxVariables;
-    this.s1[j + Properties.position.x] = c_x + 0.0; 
-    this.s1[j + Properties.position.y] = c_y + 0.0;  
-    this.s1[j + Properties.position.z] = c_z + 1.7;
-    this.s1[j + Properties.position.w] = 1.0;
-
-    this.indices = new Uint16Array ([
-        // spring connection between the particles
-        0, 1,
-        0, 2,
-        0, 3,
-        1, 2,
-        1, 3,
-        2, 3,
-    ]);
-    this.indexCount = 12;
-
     // i = particle number; j = array index for i-th particle
-    j = 0;
-    for (var i = 0; i < this.partCount; i += 1, j+= Properties.maxVariables)
+    var j = 0;
+    for (var i1 = 0; i1 < count1; i1++)
     {
-        // spring center position - hardcoded for now
-        this.s1[j + Properties.springCenter.x] = 0.0;//1.0 * i + Math.pow(-1, i) * 0.5; 
-        this.s1[j + Properties.springCenter.y] = 2.0;  
-        this.s1[j + Properties.springCenter.z] = 0.0;
+        for (var j1 = 0; j1 < count2; j1++)
+        {
+            this.s1[j + Properties.position.x] = j1;
+            this.s1[j + Properties.position.y] = c_y;
+            this.s1[j + Properties.position.z] = -i1;
+    this.s1[j + Properties.position.w] = 1.0;
+            // harcoded velocities for now
+            this.s1[j + Properties.velocity.x] =  0.0;
+            this.s1[j + Properties.velocity.y] =  0.0;
+            this.s1[j + Properties.velocity.z] =  0.0;
+            // mass, in kg.
+            this.s1[j + Properties.mass] =  1.0;
+            // on-screen diameter, in pixels (not used as of now for spring system)
+            this.s1[j + Properties.diameter] =  2.0 + 10*Math.random();
+            this.s1[j + Properties.renderMode] = 0.0;
+            this.s1[j + Properties.age] = 30 + 100*Math.random();
 
+    j+= Properties.maxVariables;
+        }
+    }
+
+    var Is = [0, 0];
+    var Js = [-1, count2];
+    for (var k = 0; k <2; k++)
+    {
+        var i1 = Is[k];
+        var j1 = Js[k];
+        this.s1[j + Properties.position.x] = j1;
+        this.s1[j + Properties.position.y] = c_y;
+        this.s1[j + Properties.position.z] = i1;
+        this.s1[j + Properties.position.w] = 1.0;
         // harcoded velocities for now
-        this.s1[j + Properties.velocity.x] =  0.0;//Math.pow(-1, i) * 0.5;
+        this.s1[j + Properties.velocity.x] =  0.0;
         this.s1[j + Properties.velocity.y] =  0.0;
         this.s1[j + Properties.velocity.z] =  0.0;
-
         // mass, in kg.
         this.s1[j + Properties.mass] =  1.0;
         // on-screen diameter, in pixels (not used as of now for spring system)
         this.s1[j + Properties.diameter] =  2.0 + 10*Math.random();
         this.s1[j + Properties.renderMode] = 0.0;
         this.s1[j + Properties.age] = 30 + 100*Math.random();
+
+        j+= Properties.maxVariables;
     }
+
+
     // COPY contents of state-vector s1 to s2
     this.s2.set(this.s1);
 
@@ -1528,8 +1625,8 @@ PartSys.prototype.applyForces = function(s, fList)
                 break;
             case Forces.Spring:
                 // state var array index for particle # k
-                var k1 = this.e1;
-                var k2 = this.e2;
+                var k1 = fList[k].e1;
+                var k2 = fList[k].e2;
                 var j1 = k1 * Properties.maxVariables;
                 var j2 = k2 * Properties.maxVariables;
                 // force from spring = K_spring * (length change)
@@ -1538,25 +1635,25 @@ PartSys.prototype.applyForces = function(s, fList)
                 var del_y = (s[j1 + Properties.position.y] - s[j2 + Properties.position.y]);
                 var del_z = (s[j1 + Properties.position.z] - s[j2 + Properties.position.z]);
                 
+                // current spring length (dist between the two particles)
+                var del_len = Math.sqrt(del_x*del_x + del_y*del_y + del_z*del_z);
                 // Normalize del (direction of spring deformation)
-                var del_len = 1 / Math.sqrt(del_x*del_x + del_y*del_y + del_z*del_z);
-                del_x *= del_len;
-                del_y *= del_len;
-                del_z *= del_len;
+                var del_len_inv = 1/del_len;
+                del_x *= del_len_inv;
+                del_y *= del_len_inv;
+                del_z *= del_len_inv;
 
                 // veloctiy of deformation:
                 // it is difference in the velocities of the two particles
                 // at both ends of the spring
                 // But only the velocity components parallel to the spring
                 // would contribute for spring velocity
-                vel1_spring = s[j1 + Properties.velocity.x]*del_x + 
-                s[j1 + Properties.velocity.y]*del_y + s[j1 + Properties.velocity.z]*del_z;
-
-                vel2_spring = s[j2 + Properties.velocity.x]*del_x + 
-                s[j2 + Properties.velocity.y]*del_y + s[j2 + Properties.velocity.z]*del_z;
+                vel_spring_x = s[j1 + Properties.velocity.x] - s[j2 + Properties.velocity.x];
+                vel_spring_y = s[j1 + Properties.velocity.y] - s[j2 + Properties.velocity.y];
+                vel_spring_z = s[j1 + Properties.velocity.z] - s[j2 + Properties.velocity.z];
 
                 // get the magnitude as that is required to calculate the spring damping
-                vel_spring = vel1_spring - vel2_spring;
+                //vel_spring = vel1_spring - vel2_spring;
                 
                 
                 var deltaLen = fList[k].K_restLength - del_len;
@@ -1564,18 +1661,18 @@ PartSys.prototype.applyForces = function(s, fList)
                 // also apply spring damping
 
                 s[j1 + Properties.force.x] += (fList[k].K_spring * (deltaLen * del_x)
-                - (fList[k].K_springDamp * vel_spring * del_x));
+                - (fList[k].K_springDamp * vel_spring_x));
                 s[j1 + Properties.force.y] += (fList[k].K_spring * (deltaLen * del_y) 
-                - (fList[k].K_springDamp * vel_spring * del_y));
+                - (fList[k].K_springDamp * vel_spring_y));
                 s[j1 + Properties.force.z] += (fList[k].K_spring * (deltaLen * del_z)
-                - (fList[k].K_springDamp * vel_spring * del_z));
+                - (fList[k].K_springDamp * vel_spring_z));
 
                 s[j2 + Properties.force.x] -= (fList[k].K_spring * (deltaLen * del_x)
-                - (fList[k].K_springDamp * vel_spring * del_x));
+                - (fList[k].K_springDamp * vel_spring_x));
                 s[j2 + Properties.force.y] -= (fList[k].K_spring * (deltaLen * del_y) 
-                - (fList[k].K_springDamp * vel_spring * del_y));
+                - (fList[k].K_springDamp * vel_spring_y));
                 s[j2 + Properties.force.z] -= (fList[k].K_spring * (deltaLen * del_z)
-                - (fList[k].K_springDamp * vel_spring * del_z));
+                - (fList[k].K_springDamp * vel_spring_z));
 
                 break;
             case Forces.Springset:
@@ -1845,6 +1942,9 @@ PartSys.prototype.doConstraints = function(limitList)
             case LimitType.VolumeWrap:
                 limitList[k].enforceLimitVolumeWrap(this.partCount, this.drag, this.s1, this.s2);
                 break;
+            case LimitType.Distance.Anchor:
+                limitList[k].enforceAnchor(this.s1, this.s2);
+                break;
             default:
                 console.log("default option selected");
                 break;
@@ -1992,6 +2092,29 @@ PartSys.prototype.roundRand = function()
     }
     // is x,y,z outside sphere? try again!
     while (this.randX*this.randX + this.randY*this.randY + this.randZ*this.randZ >= 1.0);
+}
+
+PartSys.prototype.setModelViewMatrixCloth = function()
+{
+    // create and set the model view matrix
+
+    // our viewing angle is such that the screen is x-z plane
+    // and inside screen is +y-axis
+
+    var modelViewMatrix = new Matrix4();
+    
+    modelViewMatrix.setIdentity();
+    // translate cube
+    modelViewMatrix.translate(0.0, 20.0, 10.0);
+    // scale cube
+    var s = 1.0;
+    modelViewMatrix.scale(s, s, s);
+
+    // Pass our current matrix to the vertex shaders:
+	gl.uniformMatrix4fv(
+        programInfo.uniformLocations.modelViewMatrix,
+        false,
+        modelViewMatrix.elements);
 }
 
 PartSys.prototype.setModelViewMatrixFallingParts = function()

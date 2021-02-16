@@ -551,3 +551,31 @@ CLimit.prototype.enforceSlide = function(partCount, sPrev, sNow, PlaneParams)
         s2: sNow,
     }
 }
+
+CLimit.prototype.enforceAnchor = function(sPrev, sNow)
+{
+    targFirst = this.targFirst;
+    partCount = this.partCount;
+    var Lx = (this.xMax - this.xMin);
+    var Ly = (this.yMax - this.yMin);
+    var Lz = (this.zMax - this.zMin);
+    console.log("Lx: " + Lx + " Ly: " + Ly + " Lz: " + Lz);
+
+    // i==particle number; j==array index for i-th particle
+    var j = this.targFirst * Properties.maxVariables;
+    for(var i = 0; i < this.partCount; i += 1, j+= Properties.maxVariables)
+    {
+        /*sNow[j + Properties.position.x] = 0;
+        sNow[j + Properties.position.y] = 0;
+        sNow[j + Properties.position.z] = 0;*/
+
+        sNow[j + Properties.velocity.x] = 0;
+        sNow[j + Properties.velocity.y] = 0;
+        sNow[j + Properties.velocity.z] = 0;
+    }
+
+    return{
+        s1: sPrev,
+        s2: sNow,
+    }
+}
