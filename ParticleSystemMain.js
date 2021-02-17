@@ -80,7 +80,7 @@ function main()
     g_partC.initReevesFire(150);
 
     // create Tornado
-    g_partD.initTornado(50);
+    g_partD.initTornado(200);
 
     // create Boids
     g_partE.initBoids(100);
@@ -121,6 +121,10 @@ function initializeMisc()
 
     // default state is play state, will pause only on user input
     bIsPaused = false;
+
+    // Initialize tornado position
+    tornado_x = 0;
+    tornado_y = 0;
 }
 
 function initCameraParams()
@@ -1344,36 +1348,15 @@ function myKeyDown(kev)
             console.log("T key (Spring Pull)");
             if (true)
             {
-                g_partB.runMode = 3;  // RUN!
-                m = 0;
+                var m = 12;
                 var j = m * Properties.maxVariables;
-                console.log("1st: "+g_partB.s2[j + Properties.position.x]);
-                // g_partB.s1[j + Properties.position.x] += 0.25;
-                g_partB.s1[j + Properties.position.x] += 0.25;
-                // g_partB.s1[j + Properties.position.x] += 0.25;
-                console.log("1st CHANGED: "+g_partB.s2[j + Properties.position.x]);
+                for( ; m < 16 ; m += 1, j += Properties.maxVariables)
+                {
+                    console.log("1st: "+g_partG.s2[j + Properties.position.z]);
+                    g_partG.s1[j + Properties.position.z] -= 0.25;
+                    console.log("1st CHANGED: "+g_partG.s2[j + Properties.position.z]);
+                }
 
-                m = 1;
-                j = m * Properties.maxVariables;
-                console.log("2nd: "+g_partB.s2[j + Properties.position.x]);
-                g_partB.s1[j + Properties.position.x] += -0.25;
-                // g_partB.s1[j + Properties.position.y] += -0.5;
-                // g_partB.s1[j + Properties.position.z] += -0.5;
-                console.log("2nd CHANGED: "+g_partB.s2[j + Properties.position.x]);
-
-                m = 2;
-                j = m * Properties.maxVariables;
-                console.log("2nd: "+g_partB.s2[j + Properties.position.x]);
-                // g_partB.s1[j + Properties.position.x] += -0.25;
-                // g_partB.s1[j + Properties.position.y] += -0.25;
-                g_partB.s1[j + Properties.position.z] += -0.25;
-                console.log("2nd CHANGED: "+g_partB.s2[j + Properties.position.x]);
-
-                m = 3;
-                j = m * Properties.maxVariables;
-                console.log("2nd: "+g_partB.s2[j + Properties.position.x]);
-                g_partB.s1[j + Properties.position.z] += 0.5;
-                console.log("2nd CHANGED: "+g_partB.s2[j + Properties.position.x]);
             }
             break;
         case "KeyP":
@@ -1384,6 +1367,22 @@ function myKeyDown(kev)
             console.log("L key (play");
             bIsPaused = false;
             break;
+        case "KeyU":
+            console.log("U key (move tornado)");
+            tornado_y += 2.5;
+            break;
+        case "KeyJ":
+            console.log("J key (move tornado)");
+            tornado_y -= 2.5;
+            break;
+        case "KeyH":
+            tornado_x -= 2.5;
+            console.log("H key (move tornado)");
+            break;
+        case "KeyK":
+            tornado_x += 2.5;
+            console.log("K key (move tornado)");
+            break;    
 		default:
 			console.log("UNUSED key:", kev.keyCode);
 			break;
