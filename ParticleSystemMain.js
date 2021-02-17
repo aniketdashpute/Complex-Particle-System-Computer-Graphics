@@ -85,16 +85,16 @@ function main()
     g_partB.initSpringPair(2);
 
     // create a Reeves Fire
-    g_partC.initReevesFire(150);
+    g_partC.initReevesFire(600);
 
     // create Tornado
-    g_partD.initTornado(200);
+    g_partD.initTornado(300);
 
     // create Boids
     g_partE.initBoids(100);
 
     // create particles falling on plane
-    g_partF.initFallingParts(50);
+    g_partF.initFallingParts(250);
 
     // create Cloth
     g_partG.initCloth(4, 4);
