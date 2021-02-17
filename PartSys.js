@@ -339,7 +339,7 @@ PartSys.prototype.initSpringPair = function(count)
 
     // for this Cloth only:
     var K_spring = 10.0
-    var K_springDamp = 0.05;
+    var K_springDamp = 0.07;
     var K_restLength = 1.0;
 
 
@@ -480,7 +480,8 @@ PartSys.prototype.initSpringPair = function(count)
     // Master Control: 0=reset; 1= pause; 2=step; 3=run
     this.runMode =  3;
     // adjust by s/S keys
-    this.solvType = Solver.Euler;//Midpoint;
+    this.solvType = Solver.Midpoint;
+    // this.solvType = SolverSelected.solvType;//Solver.Euler;//Midpoint;
     // floor-bounce constraint type:
     // ==0 for velocity-reversal, as in all previous versions
     // ==1 for Chapter 3's collision resolution method, which uses
@@ -529,6 +530,55 @@ PartSys.prototype.initSpringPair = function(count)
     // required for the particle system rendering
     this.createVertexAndColorBuffers();
     this.createIndexBuffer();
+}
+
+PartSys.prototype.initPositionSpringPair = function()
+{
+    var count  = this.partCount;
+    gl.useProgram(this.program);
+    gl.program = this.program;
+    this.programInfo = getAtrribsAndUniforms(gl);
+
+    // adjust by y keys
+    this.solvType = SolverSelected.solvType;
+    // this.solvType = Solver.Midpoint;
+
+    
+    // Fill VBO with state s1 contents:
+
+    // i = particle number; j = array index for i-th particle
+    var j = 0;
+    for (var j1 = 0; j1 < count; j1++)
+    {
+        this.s1[j + Properties.position.x] = 1.5*(j1-0.5);
+        this.s1[j + Properties.position.y] = 0.0;
+        this.s1[j + Properties.position.z] = 5.0;
+        this.s1[j + Properties.position.w] = 1.0;
+        // harcoded velocities for now
+        this.s1[j + Properties.velocity.x] =  0.0;
+        this.s1[j + Properties.velocity.y] =  0.0;
+        this.s1[j + Properties.velocity.z] =  0.0;
+        // give initial color to the particles
+        this.s1[j + Properties.color.r] = 0.9;
+        this.s1[j + Properties.color.g] = 0.9;
+        this.s1[j + Properties.color.b] = 0.9;
+        this.s1[j + Properties.color.a] =  1.0;
+        // initialize forces to zero
+        this.s1[j + Properties.force.x] = 0.0;
+        this.s1[j + Properties.force.y] = 0.0;
+        this.s1[j + Properties.force.z] = 0.0;
+        // mass, in kg.
+        this.s1[j + Properties.mass] =  1.0;
+        // on-screen diameter, in pixels (not used as of now for spring system)
+        this.s1[j + Properties.diameter] =  2.0 + 10*Math.random();
+        this.s1[j + Properties.renderMode] = 0.0;
+        this.s1[j + Properties.age] = 30 + 100*Math.random();
+
+        j+= Properties.maxVariables;
+    }
+
+    // COPY contents of state-vector s1 to s2
+    this.s2.set(this.s1);
 }
 
 PartSys.prototype.initCloth = function(count1, count2)
@@ -1026,7 +1076,7 @@ PartSys.prototype.initReevesFire = function(count)
     // Master Control: 0=reset; 1= pause; 2=step; 3=run
     this.runMode =  3;
     // adjust by s/S keys
-    this.solvType = Solver.OldGood;
+    this.solvType = Solver.Midpoint;
     // floor-bounce constraint type:
     // ==0 for velocity-reversal, as in all previous versions
     // ==1 for Chapter 3's collision resolution method, which uses
@@ -1049,7 +1099,7 @@ PartSys.prototype.initReevesFire = function(count)
         // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
         this.s1[j + Properties.position.x] = 1.0*this.randX; 
         this.s1[j + Properties.position.y] = 1.0*this.randY;  
-        this.s1[j + Properties.position.z] = 0.5 + 0.5*this.randZ;
+        this.s1[j + Properties.position.z] = 0.6 + 0.5*this.randZ;
         this.s1[j + Properties.position.w] =  1.0;
 
         // Now choose random initial velocities too:
@@ -2113,7 +2163,7 @@ PartSys.prototype.render = function(s)
         const type = gl.UNSIGNED_SHORT;
         const offset = 0;
         gl.drawElements(gl.LINES, this.indexCount, type, offset);
-        
+
     }
 }
 
@@ -2259,7 +2309,7 @@ PartSys.prototype.doConstraints = function(limitList)
                 // set random positions in a 0.1-radius ball centered at (0.8,0.8,0.8)
                 this.s2[j + Properties.position.x] = 1.0*this.randX; 
                 this.s2[j + Properties.position.y] = 1.0*this.randY;  
-                this.s2[j + Properties.position.z] = 0.5 + 0.5*this.randZ;
+                this.s2[j + Properties.position.z] = 0.6 + 0.5*this.randZ;
                 this.s2[j + Properties.position.w] =  1.0;
 
                 // Now choose random initial velocities too:

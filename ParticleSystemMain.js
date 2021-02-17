@@ -132,6 +132,10 @@ function initializeMisc()
     // Initialize tornado position
     tornado_x = 0;
     tornado_y = 0;
+
+    // initial solver number (solver - Euler)
+    this.solverNum = 0;
+    SolverSelected = selectSolver(this.solverNum);
 }
 
 function initCameraParams()
@@ -1315,6 +1319,37 @@ function initializeEventListeners()
     window.addEventListener("keydown", myKeyDown, false);
 }
 
+function selectSolver(solverNum)
+{
+    var solvType;
+    switch(solverNum)
+    {
+        // EXPLICIT or 'forward time' solver; Euler Method: s2 = s1 + h*s1dot
+        case 0:
+            solvType = Solver.Euler;
+            nam = "Euler";
+            break;
+        case 1:
+            solvType = Solver.Midpoint;
+            nam = "Midpoint";
+            break;
+        case 2:
+            solvType = Solver.BackEuler;
+            nam = "Back Euler";
+            break;
+        default:
+            solvType = Solver.Euler;
+            nam = "Euler";
+            console.log("Wrong Solver selected, using Euler by default")
+            break;
+    }
+
+    return{
+        solvType: solvType,
+        solvName: nam,
+    };
+}
+
 function myKeyDown(kev)
 {
 	switch (kev.code) {
@@ -1407,7 +1442,7 @@ function myKeyDown(kev)
             bIsPaused = true;
             break;
         case "KeyL":
-            console.log("L key (play");
+            console.log("L key (play)");
             bIsPaused = false;
             break;
         case "KeyU":
@@ -1426,6 +1461,14 @@ function myKeyDown(kev)
             tornado_x += 2.5;
             console.log("K key (move tornado)");
             break;    
+        case "KeyY":
+            console.log("Y key (Solver)");
+            this.solverNum = (this.solverNum + 1) % 3;
+            SolverSelected = selectSolver(this.solverNum);
+            document.getElementById('SolverSelected').innerHTML=
+			'Select Solver (spring will be initialized):\t' + SolverSelected.solvName;
+            g_partB.initPositionSpringPair();
+            break;
 		default:
 			console.log("UNUSED key:", kev.keyCode);
 			break;
