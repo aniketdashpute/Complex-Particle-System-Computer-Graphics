@@ -136,6 +136,9 @@ function initializeMisc()
     // initial solver number (solver - Euler)
     this.solverNum = 0;
     SolverSelected = selectSolver(this.solverNum);
+
+    // decide whether to use wind force
+    bApplyWind = -1;
 }
 
 function initCameraParams()
@@ -1337,6 +1340,14 @@ function selectSolver(solverNum)
             solvType = Solver.BackEuler;
             nam = "Back Euler";
             break;
+        case 3:
+            solvType = Solver.BackMidpoint;
+            nam = "Back Midpoint";
+            break;
+        case 4:
+            solvType = Solver.VelocityVerlet;
+            nam = "Velocity Verlet (Not working correctly!!)";
+            break;
         default:
             solvType = Solver.Euler;
             nam = "Euler";
@@ -1463,12 +1474,18 @@ function myKeyDown(kev)
             break;    
         case "KeyY":
             console.log("Y key (Solver)");
-            this.solverNum = (this.solverNum + 1) % 3;
+            this.solverNum = (this.solverNum + 1) % 5;
             SolverSelected = selectSolver(this.solverNum);
             document.getElementById('SolverSelected').innerHTML=
 			'Select Solver (spring will be initialized):\t' + SolverSelected.solvName;
             g_partB.initPositionSpringPair();
             break;
+        case "KeyI":
+            bApplyWind = -bApplyWind;
+            console.log("I key (enable/disable Wind)");
+            document.getElementById('WindSelector').innerHTML=
+			'Wind applied:\t' + bApplyWind;
+            break;  
 		default:
 			console.log("UNUSED key:", kev.keyCode);
 			break;

@@ -332,8 +332,13 @@ PartSys.prototype.initSpringPair = function(count)
     this.sM =    new Float32Array(this.partCount * Properties.maxVariables);
     this.sMdot = new Float32Array(this.partCount * Properties.maxVariables);
     // for Back Euler:
-    this.s20 =   new Float32Array(this.partCount * Properties.maxVariables);
-    this.s30 =   new Float32Array(this.partCount * Properties.maxVariables);
+    this.s20 =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.s2dot0 = new Float32Array(this.partCount * Properties.maxVariables);
+    // for Back Midpoint:
+    this.sM0 = new Float32Array(this.partCount * Properties.maxVariables);
+    this.sM1 = new Float32Array(this.partCount * Properties.maxVariables);
+    this.sMdot0 = new Float32Array(this.partCount * Properties.maxVariables);
+    this.sMdot1 = new Float32Array(this.partCount * Properties.maxVariables);
     // Float32Array objects are zero-filled by default
 
 
@@ -1012,6 +1017,18 @@ PartSys.prototype.initReevesFire = function(count)
     // append this to the forceList array of force-causing objects
     this.forceList.push(fTmp);
 
+    // add wind force
+    fTmp = new CForcer();
+    fTmp.forceType = Forces.Wind;
+    fTmp.K_wind = 10.0;
+    // set it to affect ALL particles
+    fTmp.targFirst = 0;
+    // (negative value means ALL particles)
+    fTmp.partCount = -1;
+    // (and IGNORE all other Cforcer members...)
+    // append this to the forceList array of force-causing objects
+    this.forceList.push(fTmp);
+
     // Report:
     console.log("PartSys.initBouncy2D() created PartSys.forceList[] array of ");
     console.log("\t\t", this.forceList.length, "CForcer objects:");
@@ -1569,6 +1586,7 @@ PartSys.prototype.initFallingParts = function(count)
     // append this to the forceList array of force-causing objects
     this.forceList.push(fTmp);
 
+
     // Report:
     console.log("PartSys.initBouncy2D() created PartSys.forceList[] array of ");
     console.log("\t\t", this.forceList.length, "CForcer objects:");
@@ -1922,8 +1940,17 @@ PartSys.prototype.applyForces = function(s, fList)
                 break;
             // Blowing-wind-like force-field; function of 3D position
             case Forces.Wind:
-                console.log("PartSys.applyForces(), fList[",k,"].forceType:", 
-                                        fList[k].forceType, "NOT YET IMPLEMENTED!!");
+                // state var array index for particle # m
+                var j = m * Properties.maxVariables;
+                for(; m<mmax; m++, j += Properties.maxVariables)
+                {
+                    if (bApplyWind == 1)
+                    {
+                        // for every part# from m to mmax-1,
+                        // force from gravity = mass * gravConst * windDirection
+                        s[j + Properties.force.x] += (fList[k].K_wind + 0.5 * s[j + Properties.velocity.x]);
+                    }
+                }
                 break;
             // Constant inward force (bub_force)to a 3D centerpoint
             case Forces.Bubble:
@@ -2218,6 +2245,77 @@ PartSys.prototype.solver = function()
                 this.s2[j + Properties.position.z] += this.s2[j + Properties.velocity.z] * (g_timeStep * 0.001); 
             }
             break;
+        case Solver.BackEuler:
+            // for all elements in s1,s2,s1dot;
+            for(var n = 0; n < this.s1.length; n++)
+            {
+                this.s20[n] = this.s1[n] + this.s1dot[n] * (g_timeStep * 0.001); 
+            }
+            // now calculate s2dot using dotFinder
+            this.dotFinder(this.s2dot0, this.s20);
+            // now get our final s2 (we are using only 1 iteration)
+            for(var n = 0; n < this.s1.length; n++)
+            {
+                this.s2[n] = this.s20[n] + 0.5 * (this.s2dot0[n] - this.s1dot[n]) * (g_timeStep * 0.001); 
+            }
+            break;
+        case Solver.BackMidpoint:
+            // for all elements in s1,s2,s1dot;
+            // first get sM0
+            for(var n = 0; n < this.s1.length; n++)
+            {
+                this.sM0[n] = this.s1[n] + 0.5 * this.s1dot[n] * (g_timeStep * 0.001); 
+            }
+            // now calculate sMdot0 using dotFinder
+            this.dotFinder(this.sMdot0, this.sM0);
+
+            // now get our s20 (we are using only 1 iteration)
+            for(var n = 0; n < this.s1.length; n++)
+            {
+                this.s20[n] = this.s1[n] + this.sMdot0[n] * (g_timeStep * 0.001); 
+            }
+            // now calculate s2dot0 using dotFinder
+            this.dotFinder(this.s2dot0, this.s20);
+
+            // now get sM1
+            for(var n = 0; n < this.s1.length; n++)
+            {
+                this.sM1[n] = this.s20[n] + 0.5 * this.s2dot0[n] * (g_timeStep * 0.001); 
+            }
+            // now calculate sMdot0 using dotFinder
+            this.dotFinder(this.sMdot1, this.sM1);
+
+            // final step:
+            for(var n = 0; n < this.s1.length; n++)
+            {
+                this.s2[n] = this.s20[n] - 0.5 * (this.sMdot0[n] - this.sMdot1[n]) * (g_timeStep * 0.001); 
+            }
+
+            break;
+        case Solver.VelocityVerlet:
+            var j = 0;
+            for(var i = 0; i < this.partCount; i += 1, j+= Properties.maxVariables)
+            {
+                var h = (g_timeStep * 0.001);
+                invMass = 1.0;// / s1[j + Properties.mass];
+
+                // compute s2.pos (quadratic):
+                this.s2[j + Properties.position.x] = this.s1[j + Properties.position.x] + this.s1[j + Properties.velocity.x]*h + invMass * this.s1[j + Properties.force.x]*(0.5*h*h);
+                this.s2[j + Properties.position.y] = this.s1[j + Properties.position.y] + this.s1[j + Properties.velocity.y]*h + invMass * this.s1[j + Properties.force.y]*(0.5*h*h);
+                this.s2[j + Properties.position.z] = this.s1[j + Properties.position.z] + this.s1[j + Properties.velocity.z]*h + invMass * this.s1[j + Properties.force.z]*(0.5*h*h);
+                // presume 'w' fixed at 1.0
+                this.s2[j + Properties.position.w] = 1.0;
+
+                // get s2.acc
+                this.applyForces(this.s2, this.forceList);
+
+                // get s2.vel:
+                this.s2[j + Properties.velocity.x] = this.s1[j + Properties.velocity.x] + invMass * (this.s1[j + Properties.force.x] + this.s2[j + Properties.force.x])*(0.5*h);
+                this.s2[j + Properties.velocity.y] = this.s1[j + Properties.velocity.y] + invMass * (this.s1[j + Properties.force.y] + this.s2[j + Properties.force.y])*(0.5*h);
+                this.s2[j + Properties.velocity.z] = this.s1[j + Properties.velocity.z] + invMass * (this.s1[j + Properties.force.z] + this.s2[j + Properties.force.z])*(0.5*h);
+
+            }
+            break;
         default:
             console.log('?!?! unknown solver: this.solvType==' + this.solvType);
             break;
@@ -2263,7 +2361,7 @@ PartSys.prototype.doConstraints = function(limitList)
                 limitList[k].enforceAnchor(this.s1, this.s2);
                 break;
             default:
-                console.log("default option selected");
+                //console.log("default option selected");
                 break;
         }
 
@@ -2273,7 +2371,7 @@ PartSys.prototype.doConstraints = function(limitList)
                 limitList[k].enforceSlide(this.partCount, this.s1, this.s2, this.PlaneParams);
                 break;
             default:
-                console.log("default option selected");
+                //console.log("default option selected");
                 break;
         }
     }

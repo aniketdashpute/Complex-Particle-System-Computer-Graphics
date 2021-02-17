@@ -479,7 +479,7 @@ CLimit.prototype.enforceLimitVolumeWrap = function(partCount, drag, sPrev, sNow)
     var Lx = (this.xMax - this.xMin);
     var Ly = (this.yMax - this.yMin);
     var Lz = (this.zMax - this.zMin);
-    console.log("Lx: " + Lx + " Ly: " + Ly + " Lz: " + Lz);
+    // console.log("Lx: " + Lx + " Ly: " + Ly + " Lz: " + Lz);
 
 
     // i==particle number; j==array index for i-th particle
@@ -525,7 +525,7 @@ CLimit.prototype.enforceSlide = function(partCount, sPrev, sNow, PlaneParams)
     var Lx = (this.xMax - this.xMin);
     var Ly = (this.yMax - this.yMin);
     var Lz = (this.zMax - this.zMin);
-    console.log("Lx: " + Lx + " Ly: " + Ly + " Lz: " + Lz);
+    // console.log("Lx: " + Lx + " Ly: " + Ly + " Lz: " + Lz);
 
     var bHasCrossedPlane = true;
     // i==particle number; j==array index for i-th particle
@@ -559,7 +559,7 @@ CLimit.prototype.enforceAnchor = function(sPrev, sNow)
     var Lx = (this.xMax - this.xMin);
     var Ly = (this.yMax - this.yMin);
     var Lz = (this.zMax - this.zMin);
-    console.log("Lx: " + Lx + " Ly: " + Ly + " Lz: " + Lz);
+    // console.log("Lx: " + Lx + " Ly: " + Ly + " Lz: " + Lz);
 
     // i==particle number; j==array index for i-th particle
     var j = this.targFirst * Properties.maxVariables;

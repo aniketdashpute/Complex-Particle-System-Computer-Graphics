@@ -80,6 +80,9 @@ function CForcer()
     // s1 velocity by (1-0.15)==0.85)
     this.K_drag = 0.15;
 
+    // Wind velocity (in x direction)
+    this.K_wind = 0.0;
+
     // Bubble-force variables:
     // bubble radius
     this.bub_radius = 1.0;
