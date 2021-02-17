@@ -305,6 +305,232 @@ PartSys.prototype.initBouncy2D = function(count)
     this.createVertexAndColorBuffers();
 }
 
+PartSys.prototype.initSpringPair = function(count)
+{
+    console.log('PartSys.SpringPair() initializing...');
+
+    this.name = "Cloth Particle System";
+
+    // get the vertex and fragment shader strings
+    var vsSource = document.getElementById("vertex-shader").textContent;
+    var fsSource = document.getElementById("fragment-shader").textContent;    
+    this.program = createProgram(gl, vsSource, fsSource);
+    if (!this.program) {
+      console.log('Failed to create program');
+      return false;
+    }
+    gl.useProgram(this.program);
+    gl.program = this.program;
+    this.programInfo = getAtrribsAndUniforms(gl);
+
+    // Create all state-variables
+    this.partCount = count;;
+    this.s1 =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.s2 =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.s1dot = new Float32Array(this.partCount * Properties.maxVariables);  
+    // for midpoint solver:
+    this.sM =    new Float32Array(this.partCount * Properties.maxVariables);
+    this.sMdot = new Float32Array(this.partCount * Properties.maxVariables);
+    // for Back Euler:
+    this.s20 =   new Float32Array(this.partCount * Properties.maxVariables);
+    this.s30 =   new Float32Array(this.partCount * Properties.maxVariables);
+    // Float32Array objects are zero-filled by default
+
+
+    // for this Cloth only:
+    var K_spring = 10.0
+    var K_springDamp = 0.05;
+    var K_restLength = 1.0;
+
+
+    // Create force-causing objects:
+    var fTmp;
+
+    var indexarray = [];
+
+    nIndexCount = 0;
+
+    // 2 more particles at the end to hold the cloth
+    var p1 = 0;
+    var p2 = 1;
+    indexarray = indexarray.concat(p1, p2);
+    // create spring force
+    fTmp = new CForcer();
+    // Two particle spring system:
+    fTmp.forceType = Forces.Spring;
+    // set it to affect ALL particles
+    fTmp.targFirst = 0;
+    // For springs, set targCount=0 & use e1,e2
+    fTmp.targCount = 0;
+    // start point particle number
+    fTmp.e1 = p1;
+    // end point particle number
+    fTmp.e2 = p2;
+    // Spring constant: force = stretchDistance*K_spring
+    fTmp.K_spring = K_spring;
+    // Spring damping: (friction within the spring)
+    fTmp.K_springDamp = K_springDamp;
+    // the zero-force length of this spring.      
+    fTmp.K_restLength = K_restLength;
+    // (and IGNORE all other Cforcer members...)
+    // append this to the forceList array of force-causing objects
+    this.forceList.push(fTmp);
+    // indexCount increment
+    nIndexCount = nIndexCount + 2;
+
+
+    // create the list of indices and assign the count
+    this.indices = new Uint16Array (indexarray);
+    this.indexCount = nIndexCount;
+
+
+
+    // drag for all particles:
+    fTmp = new CForcer();
+    // Viscous Drag
+    fTmp.forceType = Forces.Drag;
+    // in Euler solver, scales velocity by 0.85
+    fTmp.Kdrag = 0.1;
+    // apply it to ALL particles
+    fTmp.targFirst = 0;
+    // negative value means ALL particles
+    fTmp.partCount = -1;
+    // (and IGNORE all other Cforcer members...)
+    // append this to the forceList array of force-causing objects
+    this.forceList.push(fTmp);
+
+    // gravity for all particles
+    fTmp = new CForcer();
+    // earth gravity for all particles:
+    fTmp.forceType = Forces.EarthGravity;
+    // set it to affect ALL particles
+    fTmp.targFirst = 0;
+    // (negative value means ALL particles)
+    fTmp.partCount = -1;
+    // (and IGNORE all other Cforcer members...)
+    // append this to the forceList array of force-causing objects
+    this.forceList.push(fTmp);
+
+
+
+    // Report:
+    console.log("PartSys.Cloth() created PartSys.forceList[] array of ");
+    console.log("\t\t", this.forceList.length, "CForcer objects:");
+    for(i=0; i<this.forceList.length; i++)
+    {
+        console.log("CForceList[",i,"]");
+        this.forceList[i].printMe();
+    }
+
+
+
+
+
+
+    // Create constraint-causing objects:
+    var cTmp = new CLimit();
+    // set how particles 'bounce' from its surface
+    cTmp.hitType = HitType.BounceImpulsive;
+    // confine particles inside axis-aligned rectangular volume
+    cTmp.limitType = LimitType.Volume;
+    // applies to ALL particles; starting at 0
+    cTmp.targFirst = 0;
+    // through all the rest of them
+    cTmp.partCount = -1;
+    // box extent:  +/- 1.0 box at origin
+    var boxLen = 20.0;
+    cTmp.xMin = -boxLen; cTmp.xMax = boxLen;
+    cTmp.yMin = -2 * boxLen; cTmp.yMax = 2 *boxLen;
+    cTmp.zMin = 0*boxLen; cTmp.zMax = boxLen;
+    // bouncyness: coeff. of restitution.
+    cTmp.Kresti = 0.9;
+    // (and IGNORE all other CLimit members...)
+    // append this to array of constraint-causing objects
+    this.limitList.push(cTmp);
+
+    // Report:
+    console.log("PartSys.Cloth() created PartSys.limitList[] array of ");
+    console.log("\t\t", this.limitList.length, "CLimit objects.");
+    for(i=0; i<this.limitList.length; i++)
+    {
+        console.log("CLimitList[",i,"]");
+        this.limitList[i].printMe();
+    }
+
+
+
+
+    // initial velocity in meters/sec.
+    // adjust by ++Start, --Start buttons. Original value 
+    // was 0.15 meters per timestep; multiply by 60 to get meters per second.
+    this.INIT_VEL =  0.15 * 60.0;
+
+    // units-free air-drag (scales velocity); adjust by d/D keys
+    this.drag = 0.985;
+    // gravity's acceleration(meter/sec^2); adjust by g/G keys
+    this.grav = 9.832;
+    // units-free 'Coefficient of Restitution'
+    this.resti = 0.9;
+
+
+
+
+    // Initialize Particle System Controls:
+
+    // Master Control: 0=reset; 1= pause; 2=step; 3=run
+    this.runMode =  3;
+    // adjust by s/S keys
+    this.solvType = Solver.Euler;//Midpoint;
+    // floor-bounce constraint type:
+    // ==0 for velocity-reversal, as in all previous versions
+    // ==1 for Chapter 3's collision resolution method, which uses
+    // an 'impulse' to cancel any velocity boost caused by falling below the floor
+    this.bounceType = 1;
+
+
+
+    
+    // Create and fill VBO with state s1 contents:
+
+    // i = particle number; j = array index for i-th particle
+    var j = 0;
+    for (var j1 = 0; j1 < count; j1++)
+    {
+        this.s1[j + Properties.position.x] = 1.5*(j1-0.5);
+        this.s1[j + Properties.position.y] = 0.0;
+        this.s1[j + Properties.position.z] = 5.0;
+        this.s1[j + Properties.position.w] = 1.0;
+        // harcoded velocities for now
+        this.s1[j + Properties.velocity.x] =  0.0;
+        this.s1[j + Properties.velocity.y] =  0.0;
+        this.s1[j + Properties.velocity.z] =  0.0;
+        // give initial color to the particles
+        this.s1[j + Properties.color.r] = 0.9;
+        this.s1[j + Properties.color.g] = 0.9;
+        this.s1[j + Properties.color.b] = 0.9;
+        this.s1[j + Properties.color.a] =  1.0;
+        // mass, in kg.
+        this.s1[j + Properties.mass] =  1.0;
+        // on-screen diameter, in pixels (not used as of now for spring system)
+        this.s1[j + Properties.diameter] =  2.0 + 10*Math.random();
+        this.s1[j + Properties.renderMode] = 0.0;
+        this.s1[j + Properties.age] = 30 + 100*Math.random();
+
+        j+= Properties.maxVariables;
+    }
+
+
+    // COPY contents of state-vector s1 to s2
+    this.s2.set(this.s1);
+
+
+
+    // create index buffer, vertex buffer and color buffer
+    // required for the particle system rendering
+    this.createVertexAndColorBuffers();
+    this.createIndexBuffer();
+}
+
 PartSys.prototype.initCloth = function(count1, count2)
 {
     console.log('PartSys.Cloth() initializing...');
@@ -2268,7 +2494,7 @@ PartSys.prototype.setModelViewMatrixSpringPair = function()
     
     modelViewMatrix.setIdentity();
     // translate cube
-    modelViewMatrix.translate(0.0, 20.0, 0.0);
+    modelViewMatrix.translate(10.0, 20.0, 0.0);
     // scale cube
     var s = 2.0;
     modelViewMatrix.scale(s, s, s);

@@ -50,6 +50,10 @@ function main()
     // Bouncy Balls
     g_partA = new PartSys();
 
+    // create a simple spring pair system
+    // to demonstrate solvers
+    g_partB = new PartSys();
+
     // create thrid particle-system object
     // Reeves Fire
     g_partC = new PartSys();
@@ -75,6 +79,9 @@ function main()
     // create a 2D bouncy-ball system where
     // 2 particles bounce within -0.9 <=x,y<0.9 and z=0.
     g_partA.initBouncy2D(200);
+
+    // create a simple spring pair
+    g_partB.initSpringPair(2);
 
     // create a Reeves Fire
     g_partC.initReevesFire(150);
@@ -956,6 +963,39 @@ function drawPartSysBouncy()
     }
 }
 
+function drawPartSysSpringPair()
+{
+    g_isClear = 0;
+    if (g_isClear == 1) gl.clear(gl.COLOR_BUFFER_BIT);
+
+    var programInfoA = g_partB.getProgramInfo();
+    // specify the perspective projection required for viewing
+    setProjectionMatrix(gl, programInfoA);
+    // specify the modelView matrix for transforming our particle system
+    g_partB.setModelViewMatrixSpringPair();
+
+    if (false == bIsPaused)
+    {
+        // find current net force on each particle
+        g_partB.applyForces(g_partB.s1, g_partB.forceList);
+        // find time-derivative s1dot from s1;
+        g_partB.dotFinder(g_partB.s1dot, g_partB.s1);
+        // find s2 from s1 & related states.
+        g_partB.solver();
+        // Apply all constraints, s2 is ready!
+        g_partB.doConstraints(g_partB.limitList);
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partB.render(2);
+        // Make s2 the new current state s1.s
+        g_partB.swap();
+    }
+    else
+    {
+        // transfer current state to VBO, set uniforms, draw it!
+        g_partB.render(2);        
+    }
+}
+
 function drawPartSysReevesFire()
 {
     g_isClear = 0;
@@ -1240,6 +1280,9 @@ function drawScene(gl, programInfo)
 
     // draw the first particle system - Bouncy Balls
     drawPartSysBouncy();
+
+    // draw the second particle system - Spring Pair
+    drawPartSysSpringPair();
 
     // draw the third particle system - Reeves Fire
     drawPartSysReevesFire();
